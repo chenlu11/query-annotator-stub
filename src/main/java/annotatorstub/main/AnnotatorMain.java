@@ -1,6 +1,7 @@
 package annotatorstub.main;
 
 import it.unipi.di.acube.batframework.data.Annotation;
+import it.unipi.di.acube.batframework.data.ScoredAnnotation;
 import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 
 import java.io.IOException;
@@ -13,7 +14,8 @@ public class AnnotatorMain {
 	public static void main(String[] args) throws IOException {
 		FakeAnnotator ann = new FakeAnnotator();
 		String query = "strawberry fields forever";
-		HashSet<Annotation> annotations = ann.solveA2W(query);
+		HashSet<ScoredAnnotation> annotations = ann.BaseLine(query);
+//		HashSet<Annotation> annotations = ann.solveA2W(query);
 		for (Annotation a : annotations) {
 			int wid = a.getConcept();
 			String title = WikipediaApiInterface.api().getTitlebyId(a.getConcept());
