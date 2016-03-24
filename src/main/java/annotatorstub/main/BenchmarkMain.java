@@ -2,6 +2,7 @@ package annotatorstub.main;
 
 import it.unipi.di.acube.batframework.cache.BenchmarkCache;
 import it.unipi.di.acube.batframework.data.Annotation;
+import it.unipi.di.acube.batframework.data.Mention;
 import it.unipi.di.acube.batframework.data.Tag;
 import it.unipi.di.acube.batframework.datasetPlugins.DatasetBuilder;
 import it.unipi.di.acube.batframework.metrics.Metrics;
@@ -37,6 +38,10 @@ public class BenchmarkMain {
 		printMetricsResultSet("A2W-SAM", rsA2W, ann.getName());
 		
 		wikiApi.flush();
+		
+		
+//		EchoQuery();
+		
 	}
 
 	private static void printMetricsResultSet(String exp, MetricsResultSet rs, String annName){
@@ -47,6 +52,19 @@ public class BenchmarkMain {
 				rs.getMacroF1(), rs.getGlobalTp(),
 				rs.getGlobalFp(), rs.getGlobalFn(),rs.getMicroPrecision(), rs.getMicroRecall(),
 				rs.getMicroF1(), annName);
+	}
+	
+	public static void EchoQuery(){
+		System.out.println("---------------------------------------query");
+		A2WDataset ds = DatasetBuilder.getGerdaqDevel();
+		List<HashSet<Annotation>> truthAnno = ds.getA2WGoldStandardList();
+		List<HashSet<Mention>>truthMen = ds.getMentionsInstanceList();
+		System.out.println("Query size: " + ds.getTextInstanceList().size());
+		for(String str : ds.getTextInstanceList()){
+			System.out.println(str);
+		}
+		
+
 	}
 
 }

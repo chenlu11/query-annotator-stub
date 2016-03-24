@@ -133,6 +133,8 @@ public class FakeAnnotator implements Sa2WSystem {
 		
 			
 	}
+	
+	// BASELINE 
 	public  HashSet<ScoredAnnotation> BaseLine(String text) throws AnnotationException, IOException {
 		lastTime = System.currentTimeMillis();
 		String[] words;
@@ -174,7 +176,9 @@ public class FakeAnnotator implements Sa2WSystem {
 //			System.out.println("\""+Query + "\"" + " is mostly possibly linked to " + "\"" + api.getTitlebyId(entity_id) + "\"" + " (http://en.wikipedia.org/wiki/index.html?curid=" + entity_id + ") " + " with prob: "+ largest_prob);
 			
 			// add each mention with its concept to HashSet<Annotation>
-			int start_pos = text.indexOf(Query); // start position of the mention in the text
+			String[] words_in_query;
+			words_in_query = Query.split("\\s+");
+			int start_pos = text.indexOf(words_in_query[0]); // start position of the mention in the text
 			int query_length = Query.length();
 			int end_pos = start_pos + query_length; // end position of the mention in the text
 			if(entity_id != -1){
@@ -183,13 +187,24 @@ public class FakeAnnotator implements Sa2WSystem {
 			
 			
 		}	
-		return result;
-		
-				
+		return result;				
 		
 	}
 	
-	public HashSet<ScoredAnnotation> solveSa2W(String text) throws AnnotationException {
+	// Call BASELINE
+	public HashSet<ScoredAnnotation> solveSa2W(String text) throws AnnotationException{
+		HashSet<ScoredAnnotation> result = new HashSet<>();
+		try {
+			result = BaseLine(text); // just call Baseline
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return result;
+	}
+	
+	// original solveSa2W
+	public HashSet<ScoredAnnotation> solveSa2W_original(String text) throws AnnotationException {
 		lastTime = System.currentTimeMillis();
 
 		int start = 0;
