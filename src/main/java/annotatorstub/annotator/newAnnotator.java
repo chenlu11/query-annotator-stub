@@ -32,12 +32,15 @@ public class newAnnotator implements Sa2WSystem {
 		Collections.addAll(Word_List,words);
 		
 		newAnnotator ann = new newAnnotator();
+		
+		/*---------------------------example--------------------------*/
 		ArrayList<String> mentions = ann.construct_m(Word_List);
 		for(int i=0; i<mentions.size(); i++)
 			System.out.println(mentions.get(i));
 		ArrayList<ArrayList<String>> m_e_pairs = ann.construct_m_e_pair(Word_List);
 		for(int i=0; i<m_e_pairs.size(); i++)
 			System.out.println(m_e_pairs.get(i));
+		
 //		HashSet<ScoredAnnotation> annotations = ann.BaseLine("I like Vodka sauce");		
 //		for (Annotation a : annotations){
 //			System.out.printf("mention: %s: , link is: http://en.wikipedia.org/wiki/index.html?curid=%d\n", 
@@ -81,7 +84,11 @@ public class newAnnotator implements Sa2WSystem {
         }
 		return mentions;
 	}
-	
+	/**
+	 * Construct (mention,entity) pair
+	 * @param words
+	 * @return
+	 */
 	public ArrayList<ArrayList<String>> construct_m_e_pair(ArrayList<String> words){
 		ArrayList<String> mentions = construct_m(words);
 //		WikipediaApiInterface api = WikipediaApiInterface.api();
