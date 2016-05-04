@@ -18,17 +18,31 @@ import it.unipi.di.acube.batframework.utils.ProblemReduction;
 import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 
 
-public class FakeAnnotator implements Sa2WSystem {
+public class newAnnotator implements Sa2WSystem {
 	private static long lastTime = -1;
 	private static float threshold = -1f;
 	public static void main(String[] args) throws AnnotationException, IOException{
-		String query = "I like Vodka sauce";
-		FakeAnnotator ann = new FakeAnnotator();
-		HashSet<ScoredAnnotation> annotations = ann.BaseLine("I like Vodka sauce");		
-		for (Annotation a : annotations){
-			System.out.printf("mention: %s: , link is: http://en.wikipedia.org/wiki/index.html?curid=%d\n", 
-					query.substring(a.getPosition(), a.getPosition()+a.getLength()), a.getConcept());
-		}		
+		String text = "I like Vodka sauce";
+		String query = text.replaceAll("[^A-Za-z0-9 ]", " "); // only remain A-Za-z0-9 and replace other charaters with space
+		String[] words = query.split("\\s+");
+		for(int i=0; i<words.length; i++){
+			words[i] = words[i].replaceAll("[^\\w]", "");
+		}
+		ArrayList<String> Word_List = new ArrayList<String>();
+		Collections.addAll(Word_List,words);
+		
+		newAnnotator ann = new newAnnotator();
+		ArrayList<String> mentions = ann.construct_m(Word_List);
+		for(int i=0; i<mentions.size(); i++)
+			System.out.println(mentions.get(i));
+		ArrayList<ArrayList<String>> m_e_pairs = ann.construct_m_e_pair(Word_List);
+		for(int i=0; i<m_e_pairs.size(); i++)
+			System.out.println(m_e_pairs.get(i));
+//		HashSet<ScoredAnnotation> annotations = ann.BaseLine("I like Vodka sauce");		
+//		for (Annotation a : annotations){
+//			System.out.printf("mention: %s: , link is: http://en.wikipedia.org/wiki/index.html?curid=%d\n", 
+//					query.substring(a.getPosition(), a.getPosition()+a.getLength()), a.getConcept());
+//		}		
 	}
 	
 	public long getLastAnnotationTime() {
@@ -50,158 +64,46 @@ public class FakeAnnotator implements Sa2WSystem {
 	public HashSet<ScoredTag> solveSc2W(String text) throws AnnotationException {
 	    return ProblemReduction.Sa2WToSc2W(solveSa2W(text));
     }
-	public  List<String> construct_mentions(List<String> words) throws Exception{
-//		System.out.println("input words: "+words.toString());
-		List<String> Mentions = new ArrayList<String>();
-//		WikipediaApiInterface api = WikipediaApiInterface.api();
-		WATRelatednessComputer.setCache("relatedness.cache");
-		
-		int[] mention_length = new int[words.size()]; // record the length of longest mention beginning at each postion,  initial values are 0's
-		for(int i=0; i<words.size(); i++){
-			mention_length[i] = 0;
-		}			
-		for(int i=0; i<words.size(); i++){			
-			// construct mention using words in range [i, j] (including position i and position j)
-			for(int j=i; j<words.size(); j++){
-				StringBuilder builder = new StringBuilder();
-				for(int k=i; k<=j; k++){ // 
-					if(builder.length()>0){
-						builder.append(" ");
-					}					
-					builder.append(words.get(k));
-				}
-				String mention_i_j = builder.toString();
-				if(WATRelatednessComputer.getLp(mention_i_j) >0){ // is p(e|m)>0, add this mention to candidate set (longest mention)
-					if(j-i+1>mention_length[i]){
-						mention_length[i] = j - i + 1;
-					}
-				}			
-			}
-		}
-		// compute the longest mention, with the words in range [begin_pos, end_pos] (including begin_pos & end_pos)
-		int begin_pos = 0; // begin position of longest mention
-		int max_length = 0;// length of longest mention
-		for(int i=0; i<words.size(); i++){
-			if(mention_length[i]>max_length){
-				max_length = mention_length[i];
-				begin_pos = i;
-			}
-		} 
-		if(max_length==0){
-			return Mentions; // return emtpy Mentions
-		}
-		int end_pos = begin_pos + max_length - 1; // end position of longest mention
-		StringBuilder builder = new StringBuilder();
-		for(int i=begin_pos; i<=end_pos; i++){
-			if(builder.length()>0){
-				builder.append(" ");
-			}
-			builder.append(words.get(i));
-		}
-		String longest_mention = builder.toString();
-		
-		// add longest mention in this words list
-		
-		if(longest_mention.length()>0){ 
-			Mentions.add(longest_mention);
-		}
-		else{
-			return Mentions;
-		}
-		// split this words list by the longest mention and compute the Mentions in the first sublist
-		if(begin_pos>0){// Mentions.subList(beginPos, endPos): in range [beginPos, endPos), beginPos: inclusive; endPos: exclusive
-			List<String> previous_Mentions = construct_mentions(words.subList(0, begin_pos));
-			if(previous_Mentions.size()>0){
-				for(int i=0; i<previous_Mentions.size(); i++){ 
-					Mentions.add(previous_Mentions.get(i));
-				}
-			}
-		}
-		// compute the Mentions in the second sublist
-		if(end_pos<words.size()-1 && end_pos>=0){
-			List<String> following_Mentions = construct_mentions(words.subList(end_pos+1, words.size()));
-			if(following_Mentions.size()>0){
-				for(int i=0; i<following_Mentions.size(); i++){
-					Mentions.add(following_Mentions.get(i));
-				}
-			}
-		}
-		
 	
-		
-		return Mentions;
-		
-			
+	public ArrayList<String> construct_m(ArrayList<String> words){
+		ArrayList<String> mentions = new ArrayList<String>();
+		for(int i=0; i<words.size(); i++){
+        	String begin_at_i=null;
+        	for(int j=i; j<words.size(); j++){
+        		if(begin_at_i==null){
+        			begin_at_i = words.get(j);
+        		}
+        		else{
+        			begin_at_i = begin_at_i + " " + words.get(j);
+        		}
+        		mentions.add(begin_at_i);
+        	}
+        }
+		return mentions;
 	}
+	
+	public ArrayList<ArrayList<String>> construct_m_e_pair(ArrayList<String> words){
+		ArrayList<String> mentions = construct_m(words);
+//		WikipediaApiInterface api = WikipediaApiInterface.api();
+		ArrayList<ArrayList<String>> mention_entity_pair = new ArrayList<ArrayList<String>>();
+		for(int i=0; i<mentions.size(); i++){
+			String men = mentions.get(i);
+			for(int id: WATRelatednessComputer.getLinks(men)){
+				ArrayList<String> pair = new ArrayList<String>();
+				pair.add(men);
+				pair.add(Integer.toString(id));
+				mention_entity_pair.add(pair);
+			}
+		}
+		return mention_entity_pair;
+	}
+	
+	
+	// construct_mentions not used 
 	
 	// BASELINE 
-	public  HashSet<ScoredAnnotation> BaseLine(String text) throws AnnotationException, IOException {
-		lastTime = System.currentTimeMillis();
-		String[] words;
-		// split string to words list
-		String query = text.replaceAll("[^A-Za-z0-9 ]", " "); // only remain A-Za-z0-9 and replace other charaters with space
-		words = query.split("\\s+");
-		for(int i=0; i<words.length; i++){
-			words[i] = words[i].replaceAll("[^\\w]", "");
-		}
-		ArrayList<String> Word_List = new ArrayList<String>();
-		Collections.addAll(Word_List,words);
 		
-		// find all possible mentions that could be linked (s.t. all m that satisfies p(e|m)>0)
-		List<String> Mentions = new ArrayList<String>();
-		try {
-			Mentions = construct_mentions(Word_List);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
-//		for(int i=0; i<Mentions.size(); i++)
-//			System.out.println("mentions: "+ Mentions.get(i));
-//		System.out.println("score: "+ WATRelatednessComputer.getLp("Vodka sauce"));
-		
-		// compute the most possible entity (concept) for each mention, then add to result
-		HashSet<ScoredAnnotation> result = new HashSet<> ();
-		WikipediaApiInterface api = WikipediaApiInterface.api();
-		for(int i=0; i<Mentions.size(); i++){
-			String Query = Mentions.get(i);
-			double largest_prob = 0; // the probability p(e|m), initialed with 0
-			int entity_id = 0;
-			for(int id: WATRelatednessComputer.getLinks(Query)){
-				double score = WATRelatednessComputer.getCommonness(Query, id);
-				if(largest_prob<score){
-					largest_prob  = score;
-					entity_id = id;
-				}				
-			}
-//			System.out.println("\""+Query + "\"" + " is mostly possibly linked to " + "\"" + api.getTitlebyId(entity_id) + "\"" + " (http://en.wikipedia.org/wiki/index.html?curid=" + entity_id + ") " + " with prob: "+ largest_prob);
-			
-			// add each mention with its concept to HashSet<Annotation>
-			String[] words_in_query;
-			words_in_query = Query.split("\\s+");
-			int start_pos = text.indexOf(words_in_query[0]); // start position of the mention in the text
-			int query_length = Query.length();
-			int end_pos = start_pos + query_length; // end position of the mention in the text
-			if(entity_id != -1){
-				result.add(new ScoredAnnotation(start_pos, end_pos- start_pos, entity_id, (float)largest_prob));
-			}
-			
-			
-		}	
-		return result;				
-		
-	}
-	
 	// Call BASELINE
-	public HashSet<ScoredAnnotation> solveSa2W(String text) throws AnnotationException{
-		HashSet<ScoredAnnotation> result = new HashSet<>();
-		try {
-			result = BaseLine(text); // just call Baseline
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return result;
-	}
 	
 	// original solveSa2W
 	public HashSet<ScoredAnnotation> solveSa2W_original(String text) throws AnnotationException {
@@ -232,5 +134,11 @@ public class FakeAnnotator implements Sa2WSystem {
 	
 	public String getName() {
 		return "Simple yet uneffective query annotator";
+	}
+
+	@Override
+	public HashSet<ScoredAnnotation> solveSa2W(String text) throws AnnotationException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
