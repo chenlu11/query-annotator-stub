@@ -163,11 +163,11 @@ public class FakeAnnotator implements Sa2WSystem {
 		HashSet<ScoredAnnotation> result = new HashSet<> ();
 		WikipediaApiInterface api = WikipediaApiInterface.api();
 		for(int i=0; i<Mentions.size(); i++){
-			String Query = Mentions.get(i);
+			String mention = Mentions.get(i);
 			double largest_prob = 0; // the probability p(e|m), initialed with 0
 			int entity_id = 0;
-			for(int id: WATRelatednessComputer.getLinks(Query)){
-				double score = WATRelatednessComputer.getCommonness(Query, id);
+			for(int id: WATRelatednessComputer.getLinks(mention)){
+				double score = WATRelatednessComputer.getCommonness(mention, id);
 				if(largest_prob<score){
 					largest_prob  = score;
 					entity_id = id;
@@ -177,9 +177,9 @@ public class FakeAnnotator implements Sa2WSystem {
 			
 			// add each mention with its concept to HashSet<Annotation>
 			String[] words_in_query;
-			words_in_query = Query.split("\\s+");
+			words_in_query = mention.split("\\s+");
 			int start_pos = text.indexOf(words_in_query[0]); // start position of the mention in the text
-			int query_length = Query.length();
+			int query_length = mention.length();
 			int end_pos = start_pos + query_length; // end position of the mention in the text
 			if(entity_id != -1){
 				result.add(new ScoredAnnotation(start_pos, end_pos- start_pos, entity_id, (float)largest_prob));

@@ -1,11 +1,11 @@
-package annotatorstub.main;
+package annotatorstub.utils;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 
 import it.unipi.di.acube.BingInterface;
 
-public class BingSearchMain {
+public class BingSearchHelper {
 	final int num_top_result = 3; // the number of returned results that we consider
 	/**
 	 * Given a query, return the concatenation of the top 3 bing search result(title + description per result).
@@ -23,7 +23,7 @@ public class BingSearchMain {
 			sb.append(obj.getString("Title"));
 			sb.append(obj.getString("Description"));
 		}
-		return sb.toString();		
+		return sb.toString();
 	}
 
 }
