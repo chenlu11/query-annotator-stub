@@ -61,10 +61,11 @@ class EmbeddingHelper {
 	}
 	
 	/**
-	 * Compute the inner product of two documents in the embedding space. (The projection of one doc on the other doc)
+	 * Compute the Euclidean distance between two documents in the embedding space. 
+	 * The smaller is this value, the similar are the two documents.
 	 * @param doc1 The String Representation of Document1
 	 * @param doc2 The String Representation of Document2
-	 * @return
+	 * @return distance: double
 	 * @throws IOException 
 	 */
 	public static double getProjectionValue(String doc1, String doc2) throws IOException{
@@ -74,12 +75,34 @@ class EmbeddingHelper {
 		double[] ebd1 = computeDocEmbedding(doc1);
 		double[] ebd2 = computeDocEmbedding(doc2);
 		assert ebd1.length == dim && ebd2.length == dim;
-		double inner_product = .0;
+		double distance = .0;
 		for(int i = 0; i < dim; i++){
-			inner_product += ebd1[i] * ebd2[i];
+			distance += (ebd1[i] - ebd2[i]) * (ebd1[i] - ebd2[i]);
 		}
-		return inner_product;
+		distance = Math.sqrt(distance);
+		return distance;
 	}
+	
+//	/**
+//	 * Compute the inner product of two documents in the embedding space. (The projection of one doc on the other doc)
+//	 * @param doc1 The String Representation of Document1
+//	 * @param doc2 The String Representation of Document2
+//	 * @return
+//	 * @throws IOException 
+//	 */
+//	public static double getProjectionValue(String doc1, String doc2) throws IOException{
+//		if(dict == null) 
+//			loadEmbeddings(dict_path);
+//		
+//		double[] ebd1 = computeDocEmbedding(doc1);
+//		double[] ebd2 = computeDocEmbedding(doc2);
+//		assert ebd1.length == dim && ebd2.length == dim;
+//		double inner_product = .0;
+//		for(int i = 0; i < dim; i++){
+//			inner_product += ebd1[i] * ebd2[i];
+//		}
+//		return inner_product;
+//	}
 	
 
 }
