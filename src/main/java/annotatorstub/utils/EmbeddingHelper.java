@@ -6,9 +6,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 
-class EmbeddingHelper {
+public class EmbeddingHelper {
 	final static int dim = 300;
-	final static String dict_path = "deps.words";
+	final static String dict_path = "/Users/hanzhichao/Documents/ETH_Courses/NLP/project/eclipse_workspace/query-annotator-stub/deps.words";
 	static HashMap<String, double[]> dict = null;
 
 	/**
@@ -21,6 +21,7 @@ class EmbeddingHelper {
 	 */
 	public static void loadEmbeddings(String path) throws IOException {
 		System.out.println("----------------------Start loading word embeddings--------------------\n");
+		dict = new HashMap<String, double[]> ();
 		File file = new File(path);
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		String str = br.readLine();
@@ -51,6 +52,7 @@ class EmbeddingHelper {
 		String[] doc = TextHelper.parse(str);
 		int numOfWords = 0;
 		double[] res = new double[dim];
+		for(int i = 0; i < dim; i ++) res[i] = 0;
 		for (String word : doc) {
 			if (dict.containsKey(word)) {
 				numOfWords += 1;
@@ -78,8 +80,9 @@ class EmbeddingHelper {
 	 * @throws IOException
 	 */
 	public static double getProjectionValue(String doc1, String doc2) throws IOException {
-		if (dict == null)
+		if (dict == null) {
 			loadEmbeddings(dict_path);
+		}
 
 		double[] ebd1 = computeDocEmbedding(doc1);
 		double[] ebd2 = computeDocEmbedding(doc2);

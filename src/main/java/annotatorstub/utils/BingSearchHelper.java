@@ -15,12 +15,13 @@ import it.unipi.di.acube.batframework.utils.AnnotationException;
 public class BingSearchHelper {
 	public static void main(String[] args) throws Exception{
 		String query = "I like Vodka sauce";
+		query = "strawberry fields forever";
 		String result = new BingSearchHelper().getBingSearchResult(query);
 		System.out.printf("%s", result);
 	}
 	final int num_top_result = 3; // the number of returned results that we consider
 	/**
-	 * Given a query, return the concatenation of the top 3 bing search result(title + description per result).
+	 * Given a query, return the concatenation of the top 3 bing search result (title + description per result).
 	 * @param query The query containing the mention
 	 * @return A String value representing the concatenation of the top 3 result.
 	 * @throws Exception
@@ -37,8 +38,8 @@ public class BingSearchHelper {
 //		}
 //		return sb.toString();
 //	}
-	String getBingSearchResult(String query) throws Exception{	
-		String headFileName = "query_file.ser";
+	public String getBingSearchResult(String query) throws Exception{	
+		String headFileName = "/Users/hanzhichao/Documents/ETH_Courses/NLP/project/eclipse_workspace/query-annotator-stub/dump_searchResult/query_file.ser";
 		HashMap<String, String> map = new HashMap<String, String>();
 		map = readHeadFile(headFileName);
 		JSONObject a;
@@ -55,7 +56,7 @@ public class BingSearchHelper {
 			a = bing.queryBing(query);
 			JSONArray res_arr = a.getJSONObject("d").getJSONArray("results").getJSONObject(0).getJSONArray("Web");
 			int mapSize = map.size();
-			String contextFileName = Integer.toString(mapSize+1) + ".ser";
+			String contextFileName = "/Users/hanzhichao/Documents/ETH_Courses/NLP/project/eclipse_workspace/query-annotator-stub/dump_searchResult/" + Integer.toString(mapSize+1) + ".ser";
 			map.put(query, contextFileName);
 			creatHeadFile(headFileName, map);
 			StringBuilder sb = new StringBuilder();

@@ -8,12 +8,15 @@ import java.io.IOException;
 import java.util.HashSet;
 
 import annotatorstub.annotator.FakeAnnotator;
+import annotatorstub.annotator.newAnnotator;
 
 public class AnnotatorMain {
 
 	public static void main(String[] args) throws IOException {
-		FakeAnnotator ann = new FakeAnnotator();
+//		FakeAnnotator ann = new FakeAnnotator();
+		newAnnotator ann = new newAnnotator();
 		String query = "strawberry fields forever";
+//		query = "44th president";
 //		HashSet<ScoredAnnotation> annotations = ann.BaseLine(query);
 		HashSet<Annotation> annotations = ann.solveA2W(query);
 		for (Annotation a : annotations) {
