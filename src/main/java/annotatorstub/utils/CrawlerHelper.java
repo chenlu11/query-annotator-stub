@@ -21,11 +21,19 @@ public class CrawlerHelper {
 	 * @return String: the description of this entity in wikipedia
 	 * @throws IOException
 	 */
-	public static String getWikiPageDescription(int entity_id) throws IOException {
-		Document doc = Jsoup.connect(wikiUrlPrefix + entity_id).get();
-		Element wikipart = doc.select("div.mw-content-ltr").first();
-		Element wikipara = wikipart.select("p").first();
-		String s = wikipara.text();
+	public static String getWikiPageDescription(int entity_id) {
+		Document doc;
+		String s = " ";
+		try {
+			doc = Jsoup.connect(wikiUrlPrefix + entity_id).get();
+
+			Element wikipart = doc.select("div.mw-content-ltr").first();
+			Element wikipara = wikipart.select("p").first();
+			s = wikipara.text();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return s;
 	}
 }

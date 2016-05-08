@@ -7,7 +7,7 @@ import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 import java.io.IOException;
 import java.util.HashSet;
 
-import annotatorstub.annotator.FakeAnnotator;
+//import annotatorstub.annotator.FakeAnnotator;
 import annotatorstub.annotator.newAnnotator;
 
 public class AnnotatorMain {
