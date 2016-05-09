@@ -18,12 +18,14 @@ import java.util.List;
 import java.util.Locale;
 
 import annotatorstub.annotator.FakeAnnotator;
+import annotatorstub.annotator.newAnnotator;
 
 public class BenchmarkMain {
 	public static void main(String[] args) throws Exception {
 		WikipediaApiInterface wikiApi = WikipediaApiInterface.api();
 		A2WDataset ds = DatasetBuilder.getGerdaqDevel();
-		FakeAnnotator ann = new FakeAnnotator();
+//		FakeAnnotator ann = new FakeAnnotator();
+		newAnnotator ann = new newAnnotator();
 
 		List<HashSet<Tag>> resTag = BenchmarkCache.doC2WTags(ann, ds);
 		List<HashSet<Annotation>> resAnn = BenchmarkCache.doA2WAnnotations(ann, ds);

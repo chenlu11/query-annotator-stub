@@ -16,10 +16,11 @@ public class BingSearchHelper {
 	public static void main(String[] args) throws Exception{
 		String query = "I like Vodka sauce";
 		query = "strawberry fields forever";
-		String result = new BingSearchHelper().getBingSearchResult(query);
+		String result = BingSearchHelper.getBingSearchResult(query);
 		System.out.printf("%s", result);
 	}
-	final int num_top_result = 3; // the number of returned results that we consider
+	final static int num_top_result = 3; // the number of returned results that we consider
+	static HashMap<String, String> map = null;
 	/**
 	 * Given a query, return the concatenation of the top 3 bing search result (title + description per result).
 	 * @param query The query containing the mention
@@ -38,21 +39,24 @@ public class BingSearchHelper {
 //		}
 //		return sb.toString();
 //	}
-	public String getBingSearchResult(String query) throws Exception{	
+	public static String getBingSearchResult(String query) throws Exception{	
 		String headFileName = "/Users/hanzhichao/Documents/ETH_Courses/NLP/project/eclipse_workspace/query-annotator-stub/dump_searchResult/query_file.ser";
-		HashMap<String, String> map = new HashMap<String, String>();
-		map = readHeadFile(headFileName);
+		if(map==null){
+			map = new HashMap<String, String>();
+			map = readHeadFile(headFileName);
+		}
+		
 		JSONObject a;
 		
 		String result = null;
 		BingInterface bing = new BingInterface("IRvN9mc0Zql0YWe30+gGlHtF7/uQc1WJ8YBiy/HuLiI");
 		if(map.containsKey(query)){
-			System.out.printf("%s found in query-file\n", query);
+//			System.out.printf("%s found in query-file\n", query);
 			String contextFileName = map.get(query);
 //			a = readFile(contextFileName);
 			result = readFile(contextFileName);
 		}else{
-			System.out.printf("%s not found in query-file... ", query);			
+//			System.out.printf("%s not found in query-file... ", query);			
 			a = bing.queryBing(query);
 			JSONArray res_arr = a.getJSONObject("d").getJSONArray("results").getJSONObject(0).getJSONArray("Web");
 			int mapSize = map.size();
@@ -71,20 +75,20 @@ public class BingSearchHelper {
 		return result;
 	}
 	
-	public void creatHeadFile(String filename, HashMap<String, String> map){		
+	public static void creatHeadFile(String filename, HashMap<String, String> map){		
 		try{
 			FileOutputStream fileOut = new FileOutputStream(filename);
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);
 			out.writeObject(map);
 			out.close();
 			fileOut.close();
-			System.out.printf("query-fileName file is saved in %s \n", filename);
+//			System.out.printf("query-fileName file is saved in %s \n", filename);
 	    }catch(IOException i){
 			i.printStackTrace();
 		}
 	}
 	
-	public HashMap<String, String> readHeadFile(String filename){
+	public static HashMap<String, String> readHeadFile(String filename){
 		HashMap<String, String> map = new HashMap<String,String>();
 		try{
 			FileInputStream fileIn = new FileInputStream(filename);
@@ -103,7 +107,7 @@ public class BingSearchHelper {
 		return map;
 	}
 	
-	public void dumpFile(String context, String filename){
+	public static void dumpFile(String context, String filename){
 		try{
 			FileOutputStream fileOut = new FileOutputStream(filename);
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);
@@ -116,7 +120,7 @@ public class BingSearchHelper {
 		}
 	}
 	
-	public String readFile(String filename){
+	public static String readFile(String filename){
 		String context;
 		try{
 			FileInputStream fileIn = new FileInputStream(filename);

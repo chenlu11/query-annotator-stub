@@ -1,6 +1,9 @@
 package annotatorstub.annotator;
 
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -12,6 +15,7 @@ import java.util.Set;
 import annotatorstub.utils.BingSearchHelper;
 import annotatorstub.utils.CrawlerHelper;
 import annotatorstub.utils.EmbeddingHelper;
+import annotatorstub.utils.Utils;
 import annotatorstub.utils.WATRelatednessComputer;
 import it.unipi.di.acube.batframework.data.Annotation;
 import it.unipi.di.acube.batframework.data.Mention;
@@ -26,8 +30,11 @@ import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 public class newAnnotator implements Sa2WSystem {
 	private static long lastTime = -1;
 	private static float threshold = -1f;
+
+
 	public static void main(String[] args) throws Exception{
 		String text = "I like Vodka sauce";
+//		text = "strawberry fields forever"; 
 		String query = text.replaceAll("[^A-Za-z0-9 ]", " "); // only remain A-Za-z0-9 and replace other charaters with space
 		String[] words = query.split("\\s+");
 		for(int i=0; i<words.length; i++){
@@ -121,11 +128,10 @@ public class newAnnotator implements Sa2WSystem {
 	 * @throws Exception 
 	 * @throws AnnotationException
 	 */
-	public double MEscore(String mention, int entity_id) throws Exception{		
-		BingSearchHelper BH=  new BingSearchHelper();
-		String text_men = BH.getBingSearchResult(mention);
+	public double MEscore(String query, String mention, int entity_id) throws Exception{		
+		String text_men = BingSearchHelper.getBingSearchResult(query);
 		String text_entity = CrawlerHelper.getWikiPageDescription(entity_id);
-		double result = EmbeddingHelper.getProjectionValue(text_men, text_entity);
+		double result = EmbeddingHelper.getDistanceValue(text_men, text_entity);
 		return result;
 	}
 	static class MentionScore{
@@ -162,6 +168,7 @@ public class newAnnotator implements Sa2WSystem {
 	}
 
 	public  HashSet<ScoredAnnotation> contextModel(String text) throws Exception{
+		
 		String[] words;
 		// split string to words list
 		String query = text.replaceAll("[^A-Za-z0-9 ]", " "); // only remain A-Za-z0-9 and replace other charaters with space
@@ -183,8 +190,8 @@ public class newAnnotator implements Sa2WSystem {
 				for(int j=1; j<m_e_pairs.get(i).size(); j++){
 					int id = Integer.parseInt(m_e_pairs.get(i).get(j));
 					// compute the value of <men, id> pair
-					Float value = new Float(MEscore(men, id)); // suppose
-					System.out.printf("%s, %d, value: %f ", men, id, value);
+					Float value = new Float(MEscore(text, men, id)); // suppose
+					System.out.printf("%s, %d, value: %f \n", men, id, value);
 					value_list.add(value);
 				}
 				m_e_value.put(men, value_list);
@@ -199,23 +206,31 @@ public class newAnnotator implements Sa2WSystem {
 			int len = m_e_pairs.get(i).size();
 			if(len>=2){
 				ArrayList<Float> e_value = m_e_value.get(men);
-				double largest_value = 0;
+//				double largest_value = 0;
+				double smallest_value = 100;
 				String e_id = null;
 				for(int j=1; j<m_e_pairs.get(i).size(); j++){
 					String id = m_e_pairs.get(i).get(j);
 					Float value_id = e_value.get(j-1);
-					if(value_id>largest_value){
-						largest_value = value_id;
+//					if(value_id>largest_value){
+//						largest_value = value_id;
+//						e_id = id;
+//					}
+					if(value_id<smallest_value){
+						smallest_value = value_id;
 						e_id = id;
 					}
 				}
 				m_e.put(men, e_id);
-				m_s.put(men, new Float(largest_value));
-				m_s_list.add(new MentionScore(men, largest_value));
+//				m_s.put(men, new Float(largest_value));
+				m_s.put(men, new Float(smallest_value));
+//				m_s_list.add(new MentionScore(men, largest_value));
+				m_s_list.add(new MentionScore(men, smallest_value));
 			}
 		}
+		
 		MentionScore[] m_s_array = m_s_list.toArray(new MentionScore[m_s_list.size()]);
-		System.out.println(m_e);
+//		System.out.println(m_e);
 //		for(int i = 0; i < m_s_array.length; i ++) System.out.println("---------" + m_s_array[i].score);
 		quickSort(m_s_array, 0, m_s_array.length);
 		for(int i=0; i<m_s_array.length; i++){
@@ -225,7 +240,8 @@ public class newAnnotator implements Sa2WSystem {
 		
 		Set<String> final_mentions = new HashSet<String>();
 		Set<String> existed_words = new HashSet<String>();
-		for(int i=0; i<m_s_array.length; i++){
+		// for(int i=0; i<m_s_array.length; i++){
+		for(int i=m_s_array.length-1; i>=0; i--){
 			String mention_now_next = m_s_array[i].mention;
 			String[] new_words = mention_now_next.trim().split("\\s+");
 			boolean flag = false;
@@ -262,7 +278,10 @@ public class newAnnotator implements Sa2WSystem {
 	public HashSet<ScoredAnnotation> solveSa2W(String text) throws AnnotationException{
 		HashSet<ScoredAnnotation> result = new HashSet<>();
 		try {
+			Utils.iter += 1;
+			System.out.println("starting " + Utils.iter + " th query");
 			result = contextModel(text);
+			System.out.println("finished " + Utils.iter + " th query");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -295,6 +314,7 @@ public class newAnnotator implements Sa2WSystem {
 			result.add(new ScoredAnnotation(start, end - start, wid, 0.1f));
 			
 		lastTime = System.currentTimeMillis() - lastTime;
+		
 		return result;
     }
 	

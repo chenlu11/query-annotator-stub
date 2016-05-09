@@ -79,9 +79,12 @@ public class EmbeddingHelper {
 	 * @return distance: double
 	 * @throws IOException
 	 */
-	public static double getProjectionValue(String doc1, String doc2) throws IOException {
+	public static double getDistanceValue(String doc1, String doc2) throws IOException {
 		if (dict == null) {
 			loadEmbeddings(dict_path);
+		}
+		if(doc1 == null || doc2 == null) {
+			return Double.MAX_VALUE;
 		}
 
 		double[] ebd1 = computeDocEmbedding(doc1);

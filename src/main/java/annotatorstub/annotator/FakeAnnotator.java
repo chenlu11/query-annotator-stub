@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import annotatorstub.utils.Utils;
 import annotatorstub.utils.WATRelatednessComputer;
 import it.unipi.di.acube.batframework.data.Annotation;
 import it.unipi.di.acube.batframework.data.Mention;
@@ -196,6 +197,8 @@ public class FakeAnnotator implements Sa2WSystem {
 		HashSet<ScoredAnnotation> result = new HashSet<>();
 		try {
 			result = BaseLine(text); // just call Baseline
+			Utils.iter += 1;
+			System.out.println("finished " + Utils.iter + " th query");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -16,9 +16,15 @@
 
 package annotatorstub.utils;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.lang.invoke.MethodHandles;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Scanner;
 
 import org.codehaus.jettison.json.JSONObject;
@@ -29,6 +35,7 @@ public class Utils {
 	private final static Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	public static final String BASE_DBPEDIA_URI = "http://dbpedia.org/resource/";
 	public static final String WIKITITLE_ENDPAR_REGEX = "\\s*\\([^\\)]*\\)\\s*$";
+	public static int iter = 0;
 
 	public static JSONObject httpQueryJson(String urlAddr) {
 		String resultStr = null;

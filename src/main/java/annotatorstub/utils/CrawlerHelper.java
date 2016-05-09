@@ -23,16 +23,16 @@ public class CrawlerHelper {
 	 */
 	public static String getWikiPageDescription(int entity_id) {
 		Document doc;
-		String s = " ";
+		String s = null;
 		try {
 			doc = Jsoup.connect(wikiUrlPrefix + entity_id).get();
 
 			Element wikipart = doc.select("div.mw-content-ltr").first();
 			Element wikipara = wikipart.select("p").first();
-			s = wikipara.text();
+			s = wikipara.text().trim();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 		return s;
 	}
