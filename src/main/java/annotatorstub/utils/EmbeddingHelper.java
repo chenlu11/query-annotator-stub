@@ -8,7 +8,7 @@ import java.util.HashMap;
 
 public class EmbeddingHelper {
 	final static int dim = 300;
-	final static String dict_path = "/Users/hanzhichao/Documents/ETH_Courses/NLP/project/eclipse_workspace/query-annotator-stub/deps.words";
+	final static String dict_path = "deps.words";
 	static HashMap<String, double[]> dict = null;
 
 	/**
@@ -21,7 +21,7 @@ public class EmbeddingHelper {
 	 */
 	public static void loadEmbeddings(String path) throws IOException {
 		System.out.println("----------------------Start loading word embeddings--------------------\n");
-		dict = new HashMap<String, double[]> ();
+		dict = new HashMap<String, double[]>();
 		File file = new File(path);
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		String str = br.readLine();
@@ -52,7 +52,8 @@ public class EmbeddingHelper {
 		String[] doc = TextHelper.parse(str);
 		int numOfWords = 0;
 		double[] res = new double[dim];
-		for(int i = 0; i < dim; i ++) res[i] = 0;
+		for (int i = 0; i < dim; i++)
+			res[i] = 0;
 		for (String word : doc) {
 			if (dict.containsKey(word)) {
 				numOfWords += 1;
@@ -66,6 +67,37 @@ public class EmbeddingHelper {
 		for (int i = 0; i < dim; i++)
 			res[i] = res[i] / (double) numOfWords;
 		return res;
+	}
+	/**
+	 * Compute the inversed similarity between two documents
+	 * @param doc1
+	 * @param doc2
+	 * @return Double: the inversed similarity between two documents
+	 * @throws IOException
+	 */
+	public static double getInversedSimilarityValue(String doc1, String doc2) throws IOException {
+		if (dict == null) {
+			loadEmbeddings(dict_path);
+		}
+		if (doc1 == null || doc2 == null) {
+			return Double.MAX_VALUE;
+		}
+
+		double[] ebd1 = computeDocEmbedding(doc1);
+		double[] ebd2 = computeDocEmbedding(doc2);
+		assert ebd1.length == dim && ebd2.length == dim;
+		double similarity = .0;
+		double norm1 = 0;
+		double norm2 = 0;
+		for (int i = 0; i < dim; i++) {
+			similarity += ebd1[i] * ebd2[i];
+			norm1 += ebd1[i] * ebd1[i];
+			norm2 += ebd2[i] * ebd2[i];
+		}
+		norm1 = Math.sqrt(norm1);
+		norm2 = Math.sqrt(norm2);
+		similarity = similarity / (norm1 * norm2);
+		return 1 / similarity;
 	}
 
 	/**
@@ -83,7 +115,7 @@ public class EmbeddingHelper {
 		if (dict == null) {
 			loadEmbeddings(dict_path);
 		}
-		if(doc1 == null || doc2 == null) {
+		if (doc1 == null || doc2 == null) {
 			return Double.MAX_VALUE;
 		}
 
