@@ -1,0 +1,4 @@
+/target/
+/dump_searchResult/*
+deps.words
+*.cache
