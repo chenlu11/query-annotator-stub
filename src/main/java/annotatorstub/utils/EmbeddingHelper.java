@@ -64,6 +64,8 @@ public class EmbeddingHelper {
 				}
 			}
 		}
+		if (numOfWords == 0)
+			return null;
 		for (int i = 0; i < dim; i++)
 			res[i] = res[i] / (double) numOfWords;
 		return res;
@@ -101,33 +103,47 @@ public class EmbeddingHelper {
 	}
 
 	/**
-	 * Compute the Euclidean distance between two documents in the embedding
-	 * space. The smaller is this value, the similar are the two documents.
+	 * Compute the Cosine Similarity between two documents in the embedding
+	 * space. The larger is this value, the more similar are the two documents.
 	 * 
 	 * @param doc1
 	 *            The String Representation of Document1
 	 * @param doc2
 	 *            The String Representation of Document2
-	 * @return distance: double
 	 * @throws IOException
 	 */
-	public static double getDistanceValue(String doc1, String doc2) throws IOException {
+	public static double getSimilarityValue(String doc1, String doc2) throws IOException {
 		if (dict == null) {
 			loadEmbeddings(dict_path);
 		}
 		if (doc1 == null || doc2 == null) {
-			return Double.MAX_VALUE;
+			return 0;
 		}
-
 		double[] ebd1 = computeDocEmbedding(doc1);
 		double[] ebd2 = computeDocEmbedding(doc2);
-		assert ebd1.length == dim && ebd2.length == dim;
-		double distance = .0;
-		for (int i = 0; i < dim; i++) {
-			distance += (ebd1[i] - ebd2[i]) * (ebd1[i] - ebd2[i]);
+		if (ebd1 == null || ebd2 == null) {
+			return 0;
 		}
-		distance = Math.sqrt(distance);
+		assert ebd1.length == dim && ebd2.length == dim;
+//		double distance = .0;
+//		for (int i = 0; i < dim; i++) {
+//			distance += (ebd1[i] - ebd2[i]) * (ebd1[i] - ebd2[i]);
+//		}
+//		distance = Math.sqrt(distance);
+		double distance = cosineSimilarity(ebd1, ebd2);
 		return distance;
+	}
+	
+	public static double cosineSimilarity(double[] vectorA, double[] vectorB) {
+	    double dotProduct = 0.0;
+	    double normA = 0.0;
+	    double normB = 0.0;
+	    for (int i = 0; i < vectorA.length; i++) {
+	        dotProduct += vectorA[i] * vectorB[i];
+	        normA += Math.pow(vectorA[i], 2);
+	        normB += Math.pow(vectorB[i], 2);
+	    }   
+	    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 	}
 
 	// /**
