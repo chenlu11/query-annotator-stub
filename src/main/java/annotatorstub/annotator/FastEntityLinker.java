@@ -24,9 +24,6 @@ public class FastEntityLinker {
 		String[] p = query.replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
 		int l = p.length;
 		double[] maxScore = new double[l];
-		for(int i = 0; i < maxScore.length; i ++) {
-			maxScore[i] = Double.MIN_VALUE;
-		}
 		int[] previous = new int[l];
 		int[] linkedEntity = new int[l];
 		for (int i = 0; i < l; i++) {

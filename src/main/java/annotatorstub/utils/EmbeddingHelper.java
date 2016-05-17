@@ -33,6 +33,7 @@ public class EmbeddingHelper {
 		int maxEntity = 0;
 		for (int i = 0; i < entity.length; i++) {
 			double score = getProbabilityOfEntityGivenSegmentationAndQuery(queryTerms, mention, entity[i]);
+			System.out.println(score);
 			if (score > maxScore) {
 				maxScore = score;
 				maxEntity = entity[i];
@@ -53,7 +54,7 @@ public class EmbeddingHelper {
 	 */
 	private static double getProbabilityOfEntityGivenSegmentationAndQuery(String[] queryTerms, String mention,
 			int entityId) {
-		return Math.log(getCommonness(mention, entityId)) + Math.log(getMultiplyProduct(queryTerms, entityId));
+		return Math.log(getCommonness(mention, entityId)) + getMultiplyProduct(queryTerms, entityId);
 	}
 	/**
 	 * compute P(e | s), which is simply the commonness
@@ -73,17 +74,17 @@ public class EmbeddingHelper {
 	private static double getMultiplyProduct(String[] terms, int entityId) {
 		String entity = CrawlerHelper.getWikiPageDescription(entityId);
 		if (entity == null) {
-			return Double.MIN_VALUE;
+			return 0;
 		}
 		entityEbd = computeDocEmbedding(entity);
 		if(entityEbd == null) {
-			return Double.MIN_VALUE;
+			return 0;
 		}
-		double ret = 1.0;
+		double ret = 0;
 		for (String term : terms) {
 			double[] termEbd = dict.get(term);
 			if (termEbd != null) {
-				ret *= getProbabilityOfTermGivenEntity(termEbd);
+				ret += Math.log(getProbabilityOfTermGivenEntity(termEbd));
 			}
 		}
 		return ret;
@@ -94,7 +95,7 @@ public class EmbeddingHelper {
 	 * @return
 	 */
 	private static double getProbabilityOfTermGivenEntity(double[] termEbd) {
-		return 1 / (1 + Math.exp(-innerProduct(termEbd, entityEbd)));
+		return 1 / (1 + Math.exp(- innerProduct(termEbd, entityEbd)));
 	}
 
 	/**
