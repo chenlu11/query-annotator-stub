@@ -38,7 +38,7 @@ public class EmbeddingHelper {
 				maxScore = score;
 				maxEntity = entity[i];
 			}
-		}
+		} 
 		if (entity.length == 0) {
 			return new Pair<Integer, Double>(0, notLinkedScore);
 		}
