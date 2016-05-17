@@ -2,14 +2,100 @@ package annotatorstub.utils;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 
+import it.unipi.di.acube.batframework.utils.Pair;
+
 public class EmbeddingHelper {
 	final static int dim = 300;
 	final static String dict_path = "deps.words";
-	static HashMap<String, double[]> dict = null;
+	static double[] entityEbd = new double[dim];
+	static final HashMap<String, double[]> dict = loadEmbeddings(dict_path);
+	static final double notLinkedScore = 0;
+
+	/**
+	 * Use this function to compute the HIGHESTSCORE
+	 * 
+	 * @param mention
+	 *            The s in the paper, which denotes some segmentation of the
+	 *            query
+	 * @param query
+	 *            The query
+	 * @return
+	 */
+	public static Pair<Integer, Double> getHighestScore(String mention, String[] queryTerms) {
+		int[] entity = WATRelatednessComputer.getLinks(mention);
+		// maybe do some cutting edge process here to reduce # entities
+		double maxScore = .0;
+		int maxEntity = 0;
+		for (int i = 0; i < entity.length; i++) {
+			double score = getProbabilityOfEntityGivenSegmentationAndQuery(queryTerms, mention, entity[i]);
+			if (score > maxScore) {
+				maxScore = score;
+				maxEntity = entity[i];
+			}
+		}
+		if (entity.length == 0) {
+			return new Pair<Integer, Double>(0, notLinkedScore);
+		}
+
+		return new Pair<Integer, Double>(maxEntity, maxScore);
+	}
+	/**
+	 * compute p(e | s, q)
+	 * @param queryTerms
+	 * @param mention
+	 * @param entityId
+	 * @return
+	 */
+	private static double getProbabilityOfEntityGivenSegmentationAndQuery(String[] queryTerms, String mention,
+			int entityId) {
+		return Math.log(getCommonness(mention, entityId)) + Math.log(getMultiplyProduct(queryTerms, entityId));
+	}
+	/**
+	 * compute P(e | s), which is simply the commonness
+	 * @param segmentation
+	 * @param entityId
+	 * @return
+	 */
+	private static double getCommonness(String segmentation, int entityId) {
+		return WATRelatednessComputer.getCommonness(segmentation, entityId);
+	}
+	/**
+	 * compute the product of all P(t_i | e), where t_i is every word in the query
+	 * @param terms
+	 * @param entityId
+	 * @return
+	 */
+	private static double getMultiplyProduct(String[] terms, int entityId) {
+		String entity = CrawlerHelper.getWikiPageDescription(entityId);
+		if (entity == null) {
+			return Double.MIN_VALUE;
+		}
+		entityEbd = computeDocEmbedding(entity);
+		if(entityEbd == null) {
+			return Double.MIN_VALUE;
+		}
+		double ret = 1.0;
+		for (String term : terms) {
+			double[] termEbd = dict.get(term);
+			if (termEbd != null) {
+				ret *= getProbabilityOfTermGivenEntity(termEbd);
+			}
+		}
+		return ret;
+	}
+	/**
+	 * compute p(t_i | e)
+	 * @param termEbd
+	 * @return
+	 */
+	private static double getProbabilityOfTermGivenEntity(double[] termEbd) {
+		return 1 / (1 + Math.exp(-innerProduct(termEbd, entityEbd)));
+	}
 
 	/**
 	 * Load pre-trained word embeddings. reference:
@@ -19,25 +105,36 @@ public class EmbeddingHelper {
 	 * @param path
 	 * @throws IOException
 	 */
-	public static void loadEmbeddings(String path) throws IOException {
+	private static HashMap<String, double[]> loadEmbeddings(String path) {
 		System.out.println("----------------------Start loading word embeddings--------------------\n");
-		dict = new HashMap<String, double[]>();
+		HashMap<String, double[]> temp = new HashMap<String, double[]>();
 		File file = new File(path);
-		BufferedReader br = new BufferedReader(new FileReader(file));
-		String str = br.readLine();
-		while (str != null && !str.equals("")) {
-			String[] slices = str.split(" ", 2);
-			String word = slices[0];
-			String[] embedding_strs = slices[1].split(" ");
-			assert embedding_strs.length == dim;
-			double[] embedding = new double[dim];
-			for (int i = 0; i < dim; i++) {
-				embedding[i] = Double.parseDouble(embedding_strs[i]);
+		BufferedReader br;
+		try {
+			br = new BufferedReader(new FileReader(file));
+			String str = br.readLine();
+			while (str != null && !str.equals("")) {
+				String[] slices = str.split(" ", 2);
+				String word = slices[0];
+				String[] embedding_strs = slices[1].split(" ");
+				assert embedding_strs.length == dim;
+				double[] embedding = new double[dim];
+				for (int i = 0; i < dim; i++) {
+					embedding[i] = Double.parseDouble(embedding_strs[i]);
+				}
+				temp.put(word, embedding);
+				str = br.readLine();
 			}
-			dict.put(word, embedding);
-			str = br.readLine();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+
 		System.out.println("----------------------Finish loading word embeddings--------------------\n\n");
+		return temp;
 	}
 
 	/**
@@ -48,7 +145,10 @@ public class EmbeddingHelper {
 	 *            The Document to be computed
 	 * @return
 	 */
-	public static double[] computeDocEmbedding(String str) {
+	private static double[] computeDocEmbedding(String str) {
+		if(str == null) {
+			return null;
+		}
 		String[] doc = TextHelper.parse(str);
 		int numOfWords = 0;
 		double[] res = new double[dim];
@@ -70,36 +170,15 @@ public class EmbeddingHelper {
 			res[i] = res[i] / (double) numOfWords;
 		return res;
 	}
-	/**
-	 * Compute the inversed similarity between two documents
-	 * @param doc1
-	 * @param doc2
-	 * @return Double: the inversed similarity between two documents
-	 * @throws IOException
-	 */
-	public static double getInversedSimilarityValue(String doc1, String doc2) throws IOException {
-		if (dict == null) {
-			loadEmbeddings(dict_path);
-		}
-		if (doc1 == null || doc2 == null) {
-			return Double.MAX_VALUE;
+
+	private static double innerProduct(double[] ebd1, double[] ebd2) {
+		assert ebd1.length == ebd2.length;
+		double ret = .0;
+		for (int i = 0; i < ebd1.length; i++) {
+			ret += ebd1[i] * ebd2[i];
 		}
 
-		double[] ebd1 = computeDocEmbedding(doc1);
-		double[] ebd2 = computeDocEmbedding(doc2);
-		assert ebd1.length == dim && ebd2.length == dim;
-		double similarity = .0;
-		double norm1 = 0;
-		double norm2 = 0;
-		for (int i = 0; i < dim; i++) {
-			similarity += ebd1[i] * ebd2[i];
-			norm1 += ebd1[i] * ebd1[i];
-			norm2 += ebd2[i] * ebd2[i];
-		}
-		norm1 = Math.sqrt(norm1);
-		norm2 = Math.sqrt(norm2);
-		similarity = similarity / (norm1 * norm2);
-		return 1 / similarity;
+		return ret;
 	}
 
 	/**
@@ -125,48 +204,25 @@ public class EmbeddingHelper {
 			return 0;
 		}
 		assert ebd1.length == dim && ebd2.length == dim;
-//		double distance = .0;
-//		for (int i = 0; i < dim; i++) {
-//			distance += (ebd1[i] - ebd2[i]) * (ebd1[i] - ebd2[i]);
-//		}
-//		distance = Math.sqrt(distance);
-		double distance = cosineSimilarity(ebd1, ebd2);
-		return distance;
-	}
-	
-	public static double cosineSimilarity(double[] vectorA, double[] vectorB) {
-	    double dotProduct = 0.0;
-	    double normA = 0.0;
-	    double normB = 0.0;
-	    for (int i = 0; i < vectorA.length; i++) {
-	        dotProduct += vectorA[i] * vectorB[i];
-	        normA += Math.pow(vectorA[i], 2);
-	        normB += Math.pow(vectorB[i], 2);
-	    }   
-	    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+		// double distance = .0;
+		// for (int i = 0; i < dim; i++) {
+		// distance += (ebd1[i] - ebd2[i]) * (ebd1[i] - ebd2[i]);
+		// }
+		// distance = Math.sqrt(distance);
+		double similarity = cosineSimilarity(ebd1, ebd2);
+		return similarity;
 	}
 
-	// /**
-	// * Compute the inner product of two documents in the embedding space. (The
-	// projection of one doc on the other doc)
-	// * @param doc1 The String Representation of Document1
-	// * @param doc2 The String Representation of Document2
-	// * @return
-	// * @throws IOException
-	// */
-	// public static double getProjectionValue(String doc1, String doc2) throws
-	// IOException{
-	// if(dict == null)
-	// loadEmbeddings(dict_path);
-	//
-	// double[] ebd1 = computeDocEmbedding(doc1);
-	// double[] ebd2 = computeDocEmbedding(doc2);
-	// assert ebd1.length == dim && ebd2.length == dim;
-	// double inner_product = .0;
-	// for(int i = 0; i < dim; i++){
-	// inner_product += ebd1[i] * ebd2[i];
-	// }
-	// return inner_product;
-	// }
+	private static double cosineSimilarity(double[] vectorA, double[] vectorB) {
+		double dotProduct = 0.0;
+		double normA = 0.0;
+		double normB = 0.0;
+		for (int i = 0; i < vectorA.length; i++) {
+			dotProduct += vectorA[i] * vectorB[i];
+			normA += Math.pow(vectorA[i], 2);
+			normB += Math.pow(vectorB[i], 2);
+		}
+		return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+	}
 
 }
