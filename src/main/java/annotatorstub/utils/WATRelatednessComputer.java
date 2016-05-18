@@ -125,7 +125,7 @@ public class WATRelatednessComputer implements Serializable {
 		instance.cacheAnchors.put(anchor, new int[]{});
 		try {
 			String url = String.format(URL_TEMPLATE_SPOT, URLEncoder.encode(anchor, "utf-8"));
-			//LOG.debug("Querying {}", url);
+			LOG.debug("Querying {}", url);
 			JSONObject obj = Utils.httpQueryJson(url);
 			instance.increaseFlushCounter();
 			JSONArray spots = obj.getJSONArray("spots");
@@ -140,7 +140,7 @@ public class WATRelatednessComputer implements Serializable {
 					int widC = candidate.getInt("id");
 					candidates[j] = widC;
 					double commonnessC = candidate.getDouble("commonness");
-					instance.cacheComm.put(new Pair<String, Integer>(anchor, widC), commonnessC);
+					instance.cacheComm.put(new Pair<String, Integer>(anchorC, widC), commonnessC);
 				}
 			}
 		} catch (Exception e) {
@@ -151,7 +151,7 @@ public class WATRelatednessComputer implements Serializable {
 	private static double queryJsonLp(String anchor) {
 		try {
 			String url = String.format(URL_TEMPLATE_SPOT, URLEncoder.encode(anchor, "utf-8"));
-			//LOG.debug("Querying {}", url);
+			LOG.debug("Querying {}", url);
 			JSONObject obj = Utils.httpQueryJson(url);
 			instance.increaseFlushCounter();
 			JSONArray spots = obj.getJSONArray("spots");

@@ -18,7 +18,10 @@ public class EmbeddingHelper {
 	static final HashMap<String, double[]> dict = loadEmbeddings(dict_path);
 	public static final double initialVal = -10000;
 	public static final double notLinkedScore = 2000;
-
+	
+	public static void main(String[] args) {
+		new EmbeddingHelper().getHighestScore("disease", new String[] {"lyme",  "disease" ,"in" ,"georgia"});
+	}
 	/**
 	 * Use this function to compute the HIGHESTSCORE
 	 * 
@@ -32,7 +35,7 @@ public class EmbeddingHelper {
 	public static Pair<Integer, Double> getHighestScore(String mention, String[] queryTerms) {
 		int[] entity = WATRelatednessComputer.getLinks(mention);
 		// maybe do some cutting edge process here to reduce # entities
-		double minScore = Double.POSITIVE_INFINITY;
+		double minScore = Double.MAX_VALUE;
 		int minEntity = 0;
 		for (int i = 0; i < entity.length; i++) {
 			double score = getProbabilityOfEntityGivenSegmentationAndQuery(queryTerms, mention, entity[i]);
