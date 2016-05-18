@@ -7,6 +7,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 
+import org.apache.commons.logging.Log;
+
 import it.unipi.di.acube.batframework.utils.Pair;
 
 public class EmbeddingHelper {
@@ -14,7 +16,8 @@ public class EmbeddingHelper {
 	final static String dict_path = "deps.words";
 	static double[] entityEbd = new double[dim];
 	static final HashMap<String, double[]> dict = loadEmbeddings(dict_path);
-	static final double notLinkedScore = 0;
+	public static final double initialVal = -10000;
+	public static final double notLinkedScore = 2000;
 
 	/**
 	 * Use this function to compute the HIGHESTSCORE
@@ -29,21 +32,21 @@ public class EmbeddingHelper {
 	public static Pair<Integer, Double> getHighestScore(String mention, String[] queryTerms) {
 		int[] entity = WATRelatednessComputer.getLinks(mention);
 		// maybe do some cutting edge process here to reduce # entities
-		double maxScore = .0;
-		int maxEntity = 0;
+		double minScore = Double.POSITIVE_INFINITY;
+		int minEntity = 0;
 		for (int i = 0; i < entity.length; i++) {
 			double score = getProbabilityOfEntityGivenSegmentationAndQuery(queryTerms, mention, entity[i]);
-			System.out.println(score);
-			if (score > maxScore) {
-				maxScore = score;
-				maxEntity = entity[i];
+//			System.out.println(score);
+			if (score < minScore) {
+				minScore = score;
+				minEntity = entity[i];
 			}
 		} 
 		if (entity.length == 0) {
 			return new Pair<Integer, Double>(0, notLinkedScore);
 		}
 
-		return new Pair<Integer, Double>(maxEntity, maxScore);
+		return new Pair<Integer, Double>(minEntity, minScore);
 	}
 	/**
 	 * compute p(e | s, q)
@@ -54,24 +57,28 @@ public class EmbeddingHelper {
 	 */
 	private static double getProbabilityOfEntityGivenSegmentationAndQuery(String[] queryTerms, String mention,
 			int entityId) {
-		return Math.log(getCommonness(mention, entityId)) + getMultiplyProduct(queryTerms, entityId);
+		return getLogCommonness(mention, entityId) + getLogAddingProbability(queryTerms, entityId);
 	}
 	/**
-	 * compute P(e | s), which is simply the commonness
+	 * compute - log P(e | s), which is simply the commonness
 	 * @param segmentation
 	 * @param entityId
 	 * @return
 	 */
-	private static double getCommonness(String segmentation, int entityId) {
-		return WATRelatednessComputer.getCommonness(segmentation, entityId);
+	private static double getLogCommonness(String segmentation, int entityId) {
+		double com = WATRelatednessComputer.getCommonness(segmentation, entityId);
+		if(com == 0) {
+//			System.out.println("error: commonness = 0 ->" + "mention " + segmentation + "entityId " + entityId);
+		}
+		return - Math.log(com);
 	}
 	/**
-	 * compute the product of all P(t_i | e), where t_i is every word in the query
+	 * compute the sum of all - logP(t_i | e), where t_i is every word in the query
 	 * @param terms
 	 * @param entityId
 	 * @return
 	 */
-	private static double getMultiplyProduct(String[] terms, int entityId) {
+	private static double getLogAddingProbability(String[] terms, int entityId) {
 		String entity = CrawlerHelper.getWikiPageDescription(entityId);
 		if (entity == null) {
 			return 0;
@@ -87,7 +94,7 @@ public class EmbeddingHelper {
 				ret += Math.log(getProbabilityOfTermGivenEntity(termEbd));
 			}
 		}
-		return ret;
+		return - ret;
 	}
 	/**
 	 * compute p(t_i | e)
