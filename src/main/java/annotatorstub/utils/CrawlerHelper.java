@@ -25,8 +25,7 @@ public class CrawlerHelper {
 		Document doc;
 		String s = null;
 		try {
-			doc = Jsoup.connect(wikiUrlPrefix + entity_id).get();
-
+			doc = Jsoup.connect(wikiUrlPrefix + entity_id).timeout(2000).get();
 			Element wikipart = doc.select("div.mw-content-ltr").first();
 			Element wikipara = wikipart.select("p").first();
 			s = wikipara.text().trim().replaceAll(
@@ -35,7 +34,7 @@ public class CrawlerHelper {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			// e.printStackTrace();
-			System.out.println("not found:  "+ wikiUrlPrefix + entity_id );
+			System.out.println("not found:  " + wikiUrlPrefix + entity_id);
 		}
 		return s;
 	}

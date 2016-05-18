@@ -13,7 +13,7 @@ import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 public class FastEntityLinker {
 
 	public static void main(String[] args) {
-		new FastEntityLinker().solveDP("lyme disease in georgia");
+		new FastEntityLinker().solveDP("lyme disease in georgia keep");
 	}
 
 	/**
@@ -82,14 +82,18 @@ public class FastEntityLinker {
 			}
 			i = prev - 1;
 		}
+		for(int j = 0; j < previous.length; j++) {
+			System.out.print(previous[j] + " ");
+		}
 
 	}
 
 	public void dp(double[][] store, int[][] entity, int[] previous, int start, int end, String[] words) {
 		Pair<Integer, Double> pair = EmbeddingHelper.getHighestScore(constructSegmentation(words, start, end), words);
+		
 		double minScore = pair.second;
 		int minEntity = pair.first;
-		if(minScore == EmbeddingHelper.initialVal) {
+		if(minEntity == 0) {
 			previous[end] = end;
 		}else {
 			previous[end] = start;
@@ -107,7 +111,9 @@ public class FastEntityLinker {
 				if (minScore > store[start][start + i] + store[start + i + 1][end]) {
 					minScore = store[start][start + i] + store[start + i + 1][end];
 					minEntity = 0;
-					previous[end] = start + i + 1;
+					if(entity[start + i + 1][end] != 0 && entity[start][start + i] != 0) {
+						previous[end] = start + i + 1;
+					}
 				}
 			} else {
 				if (minScore > Math.min(store[start][start + i], store[start + i + 1][end])) {
@@ -120,7 +126,7 @@ public class FastEntityLinker {
 		store[start][end] = minScore;
 		entity[start][end] = minEntity;
 		System.out.println("Update i = " + start + " j = " + end + " val = " + minScore + "  mention: "
-				+ constructSegmentation(words, start, end) + " entity: " + minEntity);
+				+ constructSegmentation(words, start, end) + " entity: " + minEntity + " end index: " + end +" previous index: " +previous[end]);
 
 	}
 
@@ -132,8 +138,5 @@ public class FastEntityLinker {
 		return ret.trim();
 	}
 
-	private double phiFunction(double max, double highestScore) {
-		return max + highestScore;
-	}
 
 }
