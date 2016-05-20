@@ -6,57 +6,31 @@ import java.util.HashSet;
 import java.util.List;
 
 import annotatorstub.utils.EmbeddingHelper;
+import annotatorstub.utils.Utils;
+import it.unipi.di.acube.batframework.data.Annotation;
+import it.unipi.di.acube.batframework.data.Mention;
 import it.unipi.di.acube.batframework.data.ScoredAnnotation;
+import it.unipi.di.acube.batframework.data.ScoredTag;
+import it.unipi.di.acube.batframework.data.Tag;
+import it.unipi.di.acube.batframework.problems.Sa2WSystem;
+import it.unipi.di.acube.batframework.utils.AnnotationException;
 import it.unipi.di.acube.batframework.utils.Pair;
+import it.unipi.di.acube.batframework.utils.ProblemReduction;
 import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 
-public class FastEntityLinker {
-
+public class FastEntityLinker implements Sa2WSystem {
+	private static long lastTime = -1;
+	private static float threshold = -1f;
+	
 	public static void main(String[] args) {
 		new FastEntityLinker().solveDP("lyme disease in georgia keep");
 	}
 
-	/**
-	 * Out new model
-	 * 
-	 * @param query
-	 * @return
-	 */
-	public void fastEntityLinkerModel(String query) {
-		String[] p = query.replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
-		int l = p.length;
-		// double[] minScore = new double[l + 1];
-		// int[] previous = new int[l + 1];
-		// int[] linkedEntity = new int[l + 1];
-		// for (int i = 0; i < l + 1; i++) {
-		// for (int j = 0; j < i; j++) {
-		// String mention = constructSegmentation(p, j, i);
-		// Pair<Integer, Double> ret = EmbeddingHelper.getHighestScore(mention,
-		// p);
-		// double score = phiFunction(minScore[j], ret.second);
-		// if(minScore[i] == 0) {
-		// minScore[i] = score;
-		// }
-		// if (score < minScore[i]) {
-		// minScore[i] = score;
-		// previous[i] = j;
-		// linkedEntity[i] = ret.first;
-		// }
-		// }
-		// }
-		// for (int i = 0; i < l; i++) {
-		// System.out.print(minScore[i] + " ");
-		// }
-		// System.out.println();
-		// for (int i = 0; i < l; i++) {
-		// System.out.print(previous[i] + " ");
-		// }
-		// System.out.println();
-		// for (int i = 0; i < l; i++) {
-		// System.out.print(linkedEntity[i] + " ");
-		// }
-		// System.out.println();
-
+	public HashSet<ScoredAnnotation> fastEntityLinkerModel(String query) {
+		lastTime = System.currentTimeMillis();
+		solveDP(query);
+		lastTime = System.currentTimeMillis() - lastTime;
+		return null;
 	}
 
 	/*
@@ -136,6 +110,52 @@ public class FastEntityLinker {
 			ret += queryTerms[i].trim() + " ";
 		}
 		return ret.trim();
+	}
+	
+	
+	@Override
+	public HashSet<Annotation> solveA2W(String text) throws AnnotationException {
+		return ProblemReduction.Sa2WToA2W(solveSa2W(text), threshold);
+	}
+
+	@Override
+	public HashSet<Tag> solveC2W(String text) throws AnnotationException {
+		return ProblemReduction.A2WToC2W(solveA2W(text));
+	}
+
+	@Override
+	public String getName() {
+		return "fast entity linker annotator";
+	}
+
+	@Override
+	public long getLastAnnotationTime() {
+		return lastTime;
+	}
+
+	@Override
+	public HashSet<Annotation> solveD2W(String text, HashSet<Mention> mentions) throws AnnotationException {
+		return ProblemReduction.Sa2WToD2W(solveSa2W(text), mentions, threshold);
+	}
+
+	@Override
+	public HashSet<ScoredTag> solveSc2W(String text) throws AnnotationException {
+		return ProblemReduction.Sa2WToSc2W(solveSa2W(text));
+	}
+
+	@Override
+	public HashSet<ScoredAnnotation> solveSa2W(String text) throws AnnotationException {
+		HashSet<ScoredAnnotation> result = new HashSet<>();
+		try {
+			Utils.iter += 1;
+			System.out.println("starting the query #" + Utils.iter);
+			result = fastEntityLinkerModel(text);
+			System.out.println();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} // just call Baseline
+		return result;
 	}
 
 
