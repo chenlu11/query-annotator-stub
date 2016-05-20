@@ -27,7 +27,7 @@ public class BenchmarkMain {
 		WikipediaApiInterface wikiApi = WikipediaApiInterface.api();
 		A2WDataset ds = DatasetBuilder.getGerdaqDevel();
 //		FakeAnnotator ann = new FakeAnnotator();
-		FastEntityLinker ann = new FastEntityLinker();
+		PBoHModelAnnotator ann = new PBoHModelAnnotator();
 //		newAnnotator ann = new newAnnotator();
 
 		List<HashSet<Tag>> resTag = BenchmarkCache.doC2WTags(ann, ds);
