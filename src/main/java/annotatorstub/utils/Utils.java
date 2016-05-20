@@ -47,7 +47,8 @@ public class Utils {
 	private final static Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	public static final String BASE_DBPEDIA_URI = "http://dbpedia.org/resource/";
 	public static final String WIKITITLE_ENDPAR_REGEX = "\\s*\\([^\\)]*\\)\\s*$";
-
+	public static int iter = 0;
+	
 	public static class ComparePairsBySecondElement<E extends Serializable, T extends Comparable<T> & Serializable> implements Comparator<Pair<E, T>> {
 		@Override
 		public int compare(Pair<E, T> o1, Pair<E, T> o2) {

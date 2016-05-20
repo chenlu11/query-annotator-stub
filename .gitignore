@@ -1,4 +1,5 @@
 /target/
-/dump_searchResult/*
+/dump_searchResult/
 deps.words
 *.cache
+annotations.bin
