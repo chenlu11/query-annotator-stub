@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.jsoup.nodes.Entities;
+
 import annotatorstub.utils.BingSearchHelper;
 import annotatorstub.utils.CrawlerHelper;
 import annotatorstub.utils.EmbeddingHelper;
@@ -50,7 +52,7 @@ public class newAnnotator implements Sa2WSystem {
 			ArrayList<Double> cur_scores = new ArrayList<Double>();
 			for (int j = 0; j < cur_entities.length; j++) {
 				// compute the distance of current <mention, entity> pair
-				double cur_score = compute_query_entity_Similarity(query, cur_mention, cur_entities[j]);
+				double cur_score = compute_query_entity_Similarity(query, cur_mention, cur_entities[j], cur_mention_size);
 				cur_scores.add(cur_score);
 				System.out.println(cur_mention + ", " + cur_entities[j] + ", "
 						+ WikipediaApiInterface.api().getTitlebyId(cur_entities[j]) + ", " + cur_score);
@@ -131,9 +133,9 @@ public class newAnnotator implements Sa2WSystem {
 	}
 
 	public void split_query(String query) {
-		words = query.replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
+		words = query.toLowerCase().replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
 		for (int i = 0; i < words.length; i++) {
-			words[i] = words[i].replaceAll("[^\\w]", "");
+			words[i] = words[i].trim();
 		}
 	}
 
@@ -156,37 +158,31 @@ public class newAnnotator implements Sa2WSystem {
 					mentions.add(cur_mention);
 					mentions_start_index.add(i);
 					mentions_size.add(j - i + 1);
-					mention_entity_pair.add(cur_entities);
+					if (cur_entities.length <= 10) 
+						mention_entity_pair.add(cur_entities);
+					else {
+						int[] cur_entities_10 = new int[10];
+						for (int k = 0; k < 10; k++) {
+							cur_entities_10[k] = cur_entities[k];
+						}
+						mention_entity_pair.add(cur_entities_10);
+					}
 				}
 			}
 		}
 	}
 
-	/**
-	 * use context information to choose the most suitable (mention, entity)
-	 * pairs
-	 * 
-	 * @param text
-	 * @return
-	 * @throws Exception
-	 * @throws AnnotationException
-	 */	
-	public double MEscore(String query, String mention, int entity_id) throws Exception {
-		String text_men = BingSearchHelper.getBingSearchResult(query);
-		String text_entity = CrawlerHelper.getWikiPageDescription(entity_id);
-		double result = EmbeddingHelper.getSimilarityValue(text_men, text_entity);
-		if (!Double.isNaN(result))
-			return result;
-		else
-			return Double.MAX_VALUE;
-	}
-
-	public double compute_query_entity_Similarity(String query, String mention, int entity_id) throws Exception {
-		double cos_similarity = EmbeddingHelper.getSimilarityValue(query,
-				WikipediaApiInterface.api().getTitlebyId(entity_id).replaceAll("[^A-Za-z0-9 ]", " "));
-		double relateness = WATRelatednessComputer.getCommonness(mention, entity_id);
+	public double compute_query_entity_Similarity(String query, String mention, int entity_id, int mention_size) throws Exception {
+//		String entity_title = WikipediaApiInterface.api().getTitlebyId(entity_id);
+//		String query_context = BingSearchHelper.getBingSearchResult(query + " Wikipedia");
+//		String entity_description = CrawlerHelper.getWikiPageDescription(entity_id);
+//		double cos_similarity = EmbeddingHelper.getSimilarityValue(query_context, entity_description);
+		double commonness = WATRelatednessComputer.getCommonness(mention, entity_id);
 		double mention_probability = WATRelatednessComputer.getLp(mention);
-		return relateness;
+//		return commonness + cos_similarity;
+//		return commonness * mention_size;
+//		return mention_probability;
+		return commonness + mention_probability;
 	}
 
 	public HashSet<ScoredAnnotation> solveSa2W(String text) throws AnnotationException {
@@ -255,7 +251,7 @@ public class newAnnotator implements Sa2WSystem {
 	}
 
 	public static void main(String[] args) throws IOException {
-		String query = "lyme disease in georgia";
+		String query = "luxury apartments san francisco area";
 		newAnnotator ann = new newAnnotator();
 		ann.solveSa2W(query);
 	}

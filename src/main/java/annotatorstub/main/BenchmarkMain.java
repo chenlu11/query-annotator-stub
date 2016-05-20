@@ -1,5 +1,13 @@
 package annotatorstub.main;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.util.HashSet;
+import java.util.List;
+
+import annotatorstub.annotator.*;
+import annotatorstub.utils.Utils;
 import it.unipi.di.acube.batframework.cache.BenchmarkCache;
 import it.unipi.di.acube.batframework.data.Annotation;
 import it.unipi.di.acube.batframework.data.Tag;
@@ -12,19 +20,15 @@ import it.unipi.di.acube.batframework.problems.A2WDataset;
 import it.unipi.di.acube.batframework.utils.DumpData;
 import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 
-import java.io.File;
-import java.util.HashSet;
-import java.util.List;
-
-import annotatorstub.annotator.*;
-import annotatorstub.utils.Utils;
-
 public class BenchmarkMain {
 	public static void main(String[] args) throws Exception {
+//		System.setOut(new PrintStream(new FileOutputStream("result_FastEntityLinker2_commonness_100.txt")));
+		
 		WikipediaApiInterface wikiApi = WikipediaApiInterface.api();
 		A2WDataset ds = DatasetBuilder.getGerdaqDevel();
 //		FakeAnnotator ann = new FakeAnnotator();
 		FastEntityLinker ann = new FastEntityLinker();
+//		newAnnotator ann = new newAnnotator();
 
 		List<HashSet<Tag>> resTag = BenchmarkCache.doC2WTags(ann, ds);
 		List<HashSet<Annotation>> resAnn = BenchmarkCache.doA2WAnnotations(ann, ds);

@@ -23,7 +23,7 @@ public class FastEntityLinker implements Sa2WSystem {
 	private static float threshold = -1f;
 	
 	public static void main(String[] args) throws IOException {
-		new FastEntityLinker().solveDP("lyme disease in georgia keep");
+		new FastEntityLinker().solveDP("lyme disease in georgia");
 	}
 
 	public HashSet<ScoredAnnotation> fastEntityLinkerModel(String query) throws IOException {
@@ -37,23 +37,29 @@ public class FastEntityLinker implements Sa2WSystem {
 	 * solve dp: basecase, i == j, compute all the diagonal elements.
 	 */
 	public HashSet<ScoredAnnotation> solveDP(String query) throws IOException {
-		String[] p = query.replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
-		int l = p.length;
+		String[] words = query.toLowerCase().replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
+		int l = words.length;
 		double[][] store = new double[l][l];
 		int[][] entity = new int[l][l];
 		int[] previous = new int[l];
-		dp(store, entity, previous, 0, l - 1, p);
+		dp(store, entity, previous, 0, l - 1, words);
 				
 		HashSet<ScoredAnnotation> result = new HashSet<>();
 		WikipediaApiInterface api = WikipediaApiInterface.api();
+		System.out.println();
+		
 		int word_end = l - 1;
 		while (word_end >= 0) {
 			int word_start = previous[word_end];
-			int char_start = query.indexOf(p[word_start]);
-			int char_end = query.indexOf(p[word_end]) + p[word_end].length();			
 			int cur_entity = entity[word_start][word_end];
+			if (cur_entity == 0) {
+				word_end = word_start - 1;
+				continue;
+			}
+			int char_start = query.indexOf(words[word_start]);
+			int char_end = query.indexOf(words[word_end]) + words[word_end].length();						
 			float score = (float) store[word_start][word_end];
-			String cur_mention = constructSegmentation(p, word_start, word_end);
+			String cur_mention = constructSegmentation(words, word_start, word_end);
 			System.out.println("find mention: " + cur_mention + "\twikipediaArticle:"
 						+ api.getTitlebyId(cur_entity) + "(" + cur_entity
 						+ ")\tscore: " + score);
@@ -109,7 +115,7 @@ public class FastEntityLinker implements Sa2WSystem {
 	private String constructSegmentation(String[] queryTerms, int start, int end) {
 		String ret = "";
 		for (int i = start; i <= end; i++) {
-			ret += queryTerms[i].trim() + " ";
+			ret += queryTerms[i] + " ";
 		}
 		return ret.trim();
 	}

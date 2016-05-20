@@ -51,6 +51,25 @@ public class EmbeddingHelper {
 
 		return new Pair<Integer, Double>(minEntity, minScore);
 	}
+	
+	public static Pair<Integer, Double> getMaxScoreAndEntity(String mention, String[] words) {
+		int entities[] = WATRelatednessComputer.getLinks(mention);
+		if (entities.length == 0) {
+			return new Pair<Integer, Double>(-1, 0.0);  // entity_id = -1 means this mention has no corresponding entity
+		}
+		
+		double max_score = -1;
+		int max_entity = -1;
+		for (int i = 0; i < entities.length; i++) {
+			double score = getProbabilityOfEntityGivenSegmentationAndQuery(words, mention, entities[i]);
+			if (score > max_score) {
+				score = max_score;
+				max_entity = entities[i];
+			}
+		}
+		return new Pair<Integer, Double>(max_entity, max_score);
+	}
+	
 	/**
 	 * compute p(e | s, q)
 	 * @param queryTerms
