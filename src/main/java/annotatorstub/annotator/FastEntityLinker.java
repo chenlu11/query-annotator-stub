@@ -22,44 +22,46 @@ public class FastEntityLinker implements Sa2WSystem {
 	private static long lastTime = -1;
 	private static float threshold = -1f;
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		new FastEntityLinker().solveDP("lyme disease in georgia keep");
 	}
 
-	public HashSet<ScoredAnnotation> fastEntityLinkerModel(String query) {
+	public HashSet<ScoredAnnotation> fastEntityLinkerModel(String query) throws IOException {
 		lastTime = System.currentTimeMillis();
-		solveDP(query);
+		HashSet<ScoredAnnotation> result = solveDP(query);
 		lastTime = System.currentTimeMillis() - lastTime;
-		return null;
+		return result;
 	}
 
 	/*
 	 * solve dp: basecase, i == j, compute all the diagonal elements.
 	 */
-	public void solveDP(String query) {
+	public HashSet<ScoredAnnotation> solveDP(String query) throws IOException {
 		String[] p = query.replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
 		int l = p.length;
 		double[][] store = new double[l][l];
 		int[][] entity = new int[l][l];
 		int[] previous = new int[l];
 		dp(store, entity, previous, 0, l - 1, p);
+				
+		HashSet<ScoredAnnotation> result = new HashSet<>();
+		WikipediaApiInterface api = WikipediaApiInterface.api();
+		int word_end = l - 1;
+		while (word_end >= 0) {
+			int word_start = previous[word_end];
+			int char_start = query.indexOf(p[word_start]);
+			int char_end = query.indexOf(p[word_end]) + p[word_end].length();			
+			int cur_entity = entity[word_start][word_end];
+			float score = (float) store[word_start][word_end];
+			String cur_mention = constructSegmentation(p, word_start, word_end);
+			System.out.println("find mention: " + cur_mention + "\twikipediaArticle:"
+						+ api.getTitlebyId(cur_entity) + "(" + cur_entity
+						+ ")\tscore: " + score);
+			result.add(new ScoredAnnotation(char_start, char_end - char_start, cur_entity, score));
 
-		int i = l - 1;
-		while (i >= 0) {
-			int prev = previous[i];
-			try {
-				System.out.println(constructSegmentation(p, prev, i) + ", " + entity[prev][i] + ", "
-						+ WikipediaApiInterface.api().getTitlebyId(entity[prev][i]) + ", " + store[prev][i]);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			i = prev - 1;
+			word_end = word_start - 1;
 		}
-		for(int j = 0; j < previous.length; j++) {
-			System.out.print(previous[j] + " ");
-		}
-
+		return result;
 	}
 
 	public void dp(double[][] store, int[][] entity, int[] previous, int start, int end, String[] words) {
