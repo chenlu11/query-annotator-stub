@@ -2,10 +2,15 @@ package annotatorstub.annotator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.commons.math3.util.Pair;
+
 import annotatorstub.utils.EmbeddingHelper;
+import annotatorstub.utils.SpellingHelper;
 import annotatorstub.utils.Utils;
 import it.unipi.di.acube.batframework.data.Annotation;
 import it.unipi.di.acube.batframework.data.Mention;
@@ -14,16 +19,15 @@ import it.unipi.di.acube.batframework.data.ScoredTag;
 import it.unipi.di.acube.batframework.data.Tag;
 import it.unipi.di.acube.batframework.problems.Sa2WSystem;
 import it.unipi.di.acube.batframework.utils.AnnotationException;
-import it.unipi.di.acube.batframework.utils.Pair;
 import it.unipi.di.acube.batframework.utils.ProblemReduction;
 import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 
 public class FastEntityLinker implements Sa2WSystem {
 	private static long lastTime = -1;
 	private static float threshold = -1f;
-	
+
 	public static void main(String[] args) throws IOException {
-		new FastEntityLinker().solveDP("lyme disease in georgia");
+		new FastEntityLinker().solveDP("kathy alfred;atytorney at law");
 	}
 
 	public HashSet<ScoredAnnotation> fastEntityLinkerModel(String query) throws IOException {
@@ -32,22 +36,29 @@ public class FastEntityLinker implements Sa2WSystem {
 		lastTime = System.currentTimeMillis() - lastTime;
 		return result;
 	}
+	
+	private static final Comparator<ScoredAnnotation> comp = new Comparator<ScoredAnnotation> () {
+		@Override
+		public int compare(ScoredAnnotation a, ScoredAnnotation b) {
+			return (int)(b.getScore() - a.getScore());
+		}
+	};
 
-	/*
-	 * solve dp: basecase, i == j, compute all the diagonal elements.
-	 */
 	public HashSet<ScoredAnnotation> solveDP(String query) throws IOException {
-		String[] words = query.toLowerCase().replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
+//		 String[] words = query.toLowerCase().replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
+		Pair<String, HashMap<String, String>> ret = SpellingHelper.getSuggestion(query);
+		String[] words = ret.getFirst().split("\\W+");
+		HashMap<String, String> map = ret.getSecond();
 		int l = words.length;
 		double[][] store = new double[l][l];
 		int[][] entity = new int[l][l];
 		int[] previous = new int[l];
 		dp(store, entity, previous, 0, l - 1, words);
-				
+
 		HashSet<ScoredAnnotation> result = new HashSet<>();
 		WikipediaApiInterface api = WikipediaApiInterface.api();
 		System.out.println();
-		
+
 		int word_end = l - 1;
 		while (word_end >= 0) {
 			int word_start = previous[word_end];
@@ -56,28 +67,47 @@ public class FastEntityLinker implements Sa2WSystem {
 				word_end = word_start - 1;
 				continue;
 			}
-			int char_start = query.indexOf(words[word_start]);
-			int char_end = query.indexOf(words[word_end]) + words[word_end].length();						
+			int char_start;
+			int char_end;
+			if (map.containsKey(words[word_start])) {
+				char_start = query.indexOf(map.get(words[word_start]));
+			} else {
+				char_start = query.indexOf(words[word_start]);
+			}
+			if (map.containsKey(words[word_end])) {
+				char_end = query.indexOf(map.get(words[word_end])) + map.get(words[word_end]).length();
+			} else {
+				char_end = query.indexOf(words[word_end]) + words[word_end].length();
+			}
 			float score = (float) store[word_start][word_end];
 			String cur_mention = constructSegmentation(words, word_start, word_end);
-			System.out.println("find mention: " + cur_mention + "\twikipediaArticle:"
-						+ api.getTitlebyId(cur_entity) + "(" + cur_entity
-						+ ")\tscore: " + score);
+			System.out.println("find mention: " + cur_mention + "\twikipediaArticle:" + api.getTitlebyId(cur_entity)
+					+ "(" + cur_entity + ")\tscore: " + score);
 			result.add(new ScoredAnnotation(char_start, char_end - char_start, cur_entity, score));
 
 			word_end = word_start - 1;
+		}
+		// only take the first 3 top scored annotations
+		if(result.size() > 3) {
+			List<ScoredAnnotation> filter = new ArrayList<>();
+			filter.addAll(result);
+			filter.sort(comp);
+			result.clear();
+			for(int i = 0; i < 3; i ++) {
+				result.add(filter.get(i));
+			}
 		}
 		return result;
 	}
 
 	public void dp(double[][] store, int[][] entity, int[] previous, int start, int end, String[] words) {
 		Pair<Integer, Double> pair = EmbeddingHelper.getHighestScore(constructSegmentation(words, start, end), words);
-		
-		double minScore = pair.second;
-		int minEntity = pair.first;
-		if(minEntity == 0) {
+
+		double minScore = pair.getSecond();
+		int minEntity = pair.getFirst();
+		if (minEntity == 0) {
 			previous[end] = end;
-		}else {
+		} else {
 			previous[end] = start;
 		}
 		for (int i = 0; start + i + 1 <= end; i++) {
@@ -87,13 +117,13 @@ public class FastEntityLinker implements Sa2WSystem {
 			if (store[start + i + 1][end] == 0) {
 				dp(store, entity, previous, start + i + 1, end, words);
 			}
-			
+
 			if (store[start][start + i] != EmbeddingHelper.notLinkedScore
 					&& store[start + i + 1][end] != EmbeddingHelper.notLinkedScore) {
 				if (minScore > store[start][start + i] + store[start + i + 1][end]) {
 					minScore = store[start][start + i] + store[start + i + 1][end];
 					minEntity = 0;
-					if(entity[start + i + 1][end] != 0 && entity[start][start + i] != 0) {
+					if (entity[start + i + 1][end] != 0 && entity[start][start + i] != 0) {
 						previous[end] = start + i + 1;
 					}
 				}
@@ -108,7 +138,8 @@ public class FastEntityLinker implements Sa2WSystem {
 		store[start][end] = minScore;
 		entity[start][end] = minEntity;
 		System.out.println("Update i = " + start + " j = " + end + " val = " + minScore + "  mention: "
-				+ constructSegmentation(words, start, end) + " entity: " + minEntity + " end index: " + end +" previous index: " +previous[end]);
+				+ constructSegmentation(words, start, end) + " entity: " + minEntity + " end index: " + end
+				+ " previous index: " + previous[end]);
 
 	}
 
@@ -119,8 +150,7 @@ public class FastEntityLinker implements Sa2WSystem {
 		}
 		return ret.trim();
 	}
-	
-	
+
 	@Override
 	public HashSet<Annotation> solveA2W(String text) throws AnnotationException {
 		return ProblemReduction.Sa2WToA2W(solveSa2W(text), threshold);
@@ -165,6 +195,5 @@ public class FastEntityLinker implements Sa2WSystem {
 		} // just call Baseline
 		return result;
 	}
-
 
 }
