@@ -12,7 +12,6 @@ import java.util.List;
 
 import org.apache.commons.math3.util.Pair;
 
-
 public class EmbeddingHelper {
 	final static int dim = 300;
 	final static String dict_path = "deps.words";
@@ -20,18 +19,19 @@ public class EmbeddingHelper {
 	static final HashMap<String, double[]> dict = loadEmbeddings(dict_path);
 	public static final double initialVal = -10000;
 	public static final double notLinkedScore = 2000;
-	private static final boolean isTakeDiff = true;
-	
+	private static final boolean isTakeDiff = false;
+
 	public static void main(String[] args) {
-		new EmbeddingHelper().getHighestScore("disease", new String[] {"lyme",  "disease" ,"in" ,"georgia"});
+//		new EmbeddingHelper().getHighestScore("disease", new String[] { "lyme", "disease", "in", "georgia" });
 	}
-	public static final Comparator<Commonness> comp = new Comparator<Commonness> () {
+
+	public static final Comparator<Commonness> comp = new Comparator<Commonness>() {
 		@Override
 		public int compare(Commonness c1, Commonness c2) {
-			return (int)(c2.comm - c1.comm);
+			return (int) (c2.comm - c1.comm);
 		}
 	};
-	
+
 	/**
 	 * Use this function to compute the HIGHESTSCORE
 	 * 
@@ -42,142 +42,151 @@ public class EmbeddingHelper {
 	 *            The query
 	 * @return
 	 */
-	public static Pair<Integer, Double> getHighestScore(String mention, String[] queryTerms) {
-		int[] entity = WATRelatednessComputer.getLinks(mention);
+	public static Pair<Integer, Double> getHighestScore(String mention, String query) {
+		int[] entity = WATRelatednessComputer.getLinks(mention.trim());
+//		System.out.println("constructed Mention:" +mention);
+//		System.out.println("entity set size: " + entity.length);
 		// maybe do some cutting edge process here to reduce # entities
 		// select top 3 entities
 		List<Commonness> list = new ArrayList<Commonness>(entity.length);
-		for(int i = 0; i < entity.length; i ++) {
+		for (int i = 0; i < entity.length; i++) {
 			double score = WATRelatednessComputer.getCommonness(mention, entity[i]);
 			list.add(new Commonness(entity[i], score));
 		}
 		list.sort(comp);
-		if(list.size() > 3) {
-		list = list.subList(0, 3);
+		if (list.size() > 5) {
+			list = list.subList(0, 5);
 		}
+		
 		int[] newEntity = new int[list.size()];
-		for(int i = 0; i < list.size(); i ++) {
+		for (int i = 0; i < list.size(); i++) {
 			newEntity[i] = list.get(i).entityId;
 		}
 		// main process starts here
 		double minScore = Double.MAX_VALUE;
 		int minEntity = 0;
 		for (int i = 0; i < newEntity.length; i++) {
-			double score = getProbabilityOfEntityGivenSegmentationAndQuery(queryTerms, mention, newEntity[i]);
-//			System.out.println(score);
+			double score = getProbabilityOfEntityGivenSegmentationAndQuery(query, mention, newEntity[i]);
+			// System.out.println(score);
 			if (score < minScore) {
 				minScore = score;
 				minEntity = newEntity[i];
 			}
-		} 
+		}
 		if (newEntity.length == 0) {
 			return new Pair<Integer, Double>(0, notLinkedScore);
 		}
 
 		return new Pair<Integer, Double>(minEntity, minScore);
 	}
-	
-	public static Pair<Integer, Double> getMaxScoreAndEntity(String mention, String[] words) {
-		int entities[] = WATRelatednessComputer.getLinks(mention);
-		if (entities.length == 0) {
-			return new Pair<Integer, Double>(-1, 0.0);  // entity_id = -1 means this mention has no corresponding entity
-		}
-		
-		double max_score = -1;
-		int max_entity = -1;
-		for (int i = 0; i < entities.length; i++) {
-			double score = getProbabilityOfEntityGivenSegmentationAndQuery(words, mention, entities[i]);
-			if (score > max_score) {
-				score = max_score;
-				max_entity = entities[i];
-			}
-		}
-		return new Pair<Integer, Double>(max_entity, max_score);
-	}
-	
+
 	/**
 	 * compute p(e | s, q)
+	 * 
 	 * @param queryTerms
 	 * @param mention
 	 * @param entityId
 	 * @return
 	 */
-	private static double getProbabilityOfEntityGivenSegmentationAndQuery(String[] queryTerms, String mention,
-			int entityId) {
+	private static double getProbabilityOfEntityGivenSegmentationAndQuery(String query, String mention, int entityId) {
 		double negLogComm = getLogCommonness(mention, entityId);
-		if(negLogComm == Double.POSITIVE_INFINITY) {
+		if (negLogComm == Double.POSITIVE_INFINITY) {
 			return Double.POSITIVE_INFINITY;
 		}
-		return getLogCommonness(mention, entityId) + getLogAddingProbability(queryTerms, entityId);
+		String[] mentionTerms = mention.split("\\W+");
+		int querylen = query.split("\\W+").length;
+//		System.out.println(getLogCommonness(mention, entityId) + " " + getLogAddingProbability(query.split("\\W+"), querylen, entityId));
+		return  getLogAddingProbability(query.split("\\W+"), querylen, entityId);
+//		if(querylen == mentionTerms.length){
+////			return getLogCommonness(mention, entityId) + getLogAddingProbability(query.split("\\W+"), querylen, entityId);
+//			return getLogAddingProbability(query.split("\\W+"), querylen, entityId);
+//		}
+//		for (String m : mentionTerms) {
+//			query = query.replace(m, "");
+//		}
+////		return getLogCommonness(mention, entityId) + getLogAddingProbability(query.split("\\W+"), querylen, entityId);
+//		System.out.println("mention is:   " +query);
+//		return getLogAddingProbability(query.split("\\W+"), querylen, entityId);
 	}
+
 	/**
 	 * compute - log P(e | s), which is simply the commonness
+	 * 
 	 * @param segmentation
 	 * @param entityId
 	 * @return
 	 */
 	private static double getLogCommonness(String segmentation, int entityId) {
 		double com = WATRelatednessComputer.getCommonness(segmentation, entityId);
-		if(com == 0) {
-//			System.out.println("error: commonness = 0 ->" + "mention " + segmentation + "entityId " + entityId);
+		if (com == 0) {
+			// System.out.println("error: commonness = 0 ->" + "mention " +
+			// segmentation + "entityId " + entityId);
 		}
-		return - Math.log(com);
+		return -Math.log(com);
 	}
+
 	/**
-	 * compute the sum of all - logP(t_i | e), where t_i is every word in the query
+	 * compute the sum of all - logP(t_i | e), where t_i is every word in the
+	 * query
+	 * 
 	 * @param terms
 	 * @param entityId
 	 * @return
 	 */
-	private static double getLogAddingProbability(String[] terms, int entityId) {
+	private static double getLogAddingProbability(String[] terms, int qLength, int entityId) {
 		String entity = CrawlerHelper.getWikiPageDescription(entityId);
 		if (entity == null) {
 			return Double.POSITIVE_INFINITY;
 		}
 		entityEbd = computeDocEmbedding(entity);
-		if(entityEbd == null) {
+		if (entityEbd == null) {
 			return Double.POSITIVE_INFINITY;
 		}
 		double ret = 0;
 		double[] avgQuery = new double[dim];
-		if(isTakeDiff) {
+		if (isTakeDiff) {
 			avgQuery = computeQueryEmbedding(terms);
-//			StringBuilder sb = new StringBuilder();
-//		    for(String s : terms) {
-//		    	sb.append(s);
-//		    	sb.append(" ");
-//		    }
-//		    sb.append("wikipedia");
-//			try {
-//				avgQuery = computeDocEmbedding(BingSearchHelper.getBingSearchResult(new String(sb)));
-//			} catch (Exception e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
+			// StringBuilder sb = new StringBuilder();
+			// for(String s : terms) {
+			// sb.append(s);
+			// sb.append(" ");
+			// }
+			// sb.append("wikipedia");
+			// try {
+			// avgQuery =
+			// computeDocEmbedding(BingSearchHelper.getBingSearchResult(new
+			// String(sb)));
+			// } catch (Exception e) {
+			// // TODO Auto-generated catch block
+			// e.printStackTrace();
+			// }
 		}
+		int total = 0;
 		for (String term : terms) {
 			double[] termEbd = dict.get(term);
 			if (termEbd != null) {
-				if(isTakeDiff){
-					for(int i = 0; i < dim; i ++) {
+				total += 1;
+				if (isTakeDiff) {
+					for (int i = 0; i < dim; i++) {
 						termEbd[i] -= avgQuery[i];
 					}
 				}
 				ret += Math.log(getProbabilityOfTermGivenEntity(termEbd));
-			} else {
-				// if the corpus doesn't contain this word, just link this word to NOTLINKED entity
-				return Double.POSITIVE_INFINITY;
-			}
+			} 
 		}
+		if(total == 0) return Double.POSITIVE_INFINITY;
+		
 		return - ret;
 	}
+
 	/**
 	 * compute p(t_i | e)
+	 * 
 	 * @param termEbd
 	 * @return
 	 */
 	private static double getProbabilityOfTermGivenEntity(double[] termEbd) {
-		return 1 / (1 + Math.exp(- innerProduct(termEbd, entityEbd)));
+		return 1 / (1 + Math.exp(-innerProduct(termEbd, entityEbd)));
 	}
 
 	/**
@@ -219,7 +228,7 @@ public class EmbeddingHelper {
 		System.out.println("----------------------Finish loading word embeddings--------------------\n\n");
 		return temp;
 	}
-	
+
 	private static double[] computeQueryEmbedding(String[] doc) {
 		int numOfWords = 0;
 		double[] res = new double[dim];
@@ -248,7 +257,7 @@ public class EmbeddingHelper {
 	 * @return
 	 */
 	private static double[] computeDocEmbedding(String str) {
-		if(str == null) {
+		if (str == null) {
 			return null;
 		}
 		String[] doc = TextHelper.parse(str);
@@ -330,6 +339,7 @@ public class EmbeddingHelper {
 class Commonness {
 	public int entityId;
 	public double comm;
+
 	public Commonness(int id, double score) {
 		entityId = id;
 		comm = score;

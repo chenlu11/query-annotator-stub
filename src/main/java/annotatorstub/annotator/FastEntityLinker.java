@@ -9,7 +9,9 @@ import java.util.List;
 
 import org.apache.commons.math3.util.Pair;
 
+import annotatorstub.utils.BingCorrectionHelper;
 import annotatorstub.utils.EmbeddingHelper;
+import annotatorstub.utils.PluralToSingularHelper;
 import annotatorstub.utils.SpellingHelper;
 import annotatorstub.utils.Utils;
 import it.unipi.di.acube.batframework.data.Annotation;
@@ -27,7 +29,7 @@ public class FastEntityLinker implements Sa2WSystem {
 	private static float threshold = -1f;
 
 	public static void main(String[] args) throws IOException {
-		new FastEntityLinker().solveDP("kathy alfred;atytorney at law");
+		new FastEntityLinker().solveDP("vodka sauce recip");
 	}
 
 	public HashSet<ScoredAnnotation> fastEntityLinkerModel(String query) throws IOException {
@@ -46,14 +48,17 @@ public class FastEntityLinker implements Sa2WSystem {
 
 	public HashSet<ScoredAnnotation> solveDP(String query) throws IOException {
 //		 String[] words = query.toLowerCase().replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
-		Pair<String, HashMap<String, String>> ret = SpellingHelper.getSuggestion(query);
+		Pair<String, HashMap<String, String>> ret = BingCorrectionHelper.correction(query);
+		ret = PluralToSingularHelper.getSingular(ret.getFirst(), ret.getSecond());
+		String newQuery = ret.getFirst();
+		System.out.println("newQuery is : " + newQuery);
 		String[] words = ret.getFirst().split("\\W+");
 		HashMap<String, String> map = ret.getSecond();
 		int l = words.length;
 		double[][] store = new double[l][l];
 		int[][] entity = new int[l][l];
 		int[] previous = new int[l];
-		dp(store, entity, previous, 0, l - 1, words);
+		dp(store, entity, previous, 0, l - 1, words, newQuery);
 
 		HashSet<ScoredAnnotation> result = new HashSet<>();
 		WikipediaApiInterface api = WikipediaApiInterface.api();
@@ -93,15 +98,15 @@ public class FastEntityLinker implements Sa2WSystem {
 			filter.addAll(result);
 			filter.sort(comp);
 			result.clear();
-			for(int i = 0; i < 3; i ++) {
+			for(int i = 0; i < 5; i ++) {
 				result.add(filter.get(i));
 			}
 		}
 		return result;
 	}
 
-	public void dp(double[][] store, int[][] entity, int[] previous, int start, int end, String[] words) {
-		Pair<Integer, Double> pair = EmbeddingHelper.getHighestScore(constructSegmentation(words, start, end), words);
+	public void dp(double[][] store, int[][] entity, int[] previous, int start, int end,String[] words, String query) {
+		Pair<Integer, Double> pair = EmbeddingHelper.getHighestScore(constructSegmentation(words, start, end), query);
 
 		double minScore = pair.getSecond();
 		int minEntity = pair.getFirst();
@@ -112,10 +117,10 @@ public class FastEntityLinker implements Sa2WSystem {
 		}
 		for (int i = 0; start + i + 1 <= end; i++) {
 			if (store[start][start + i] == 0) {
-				dp(store, entity, previous, start, start + i, words);
+				dp(store, entity, previous, start, start + i, words, query);
 			}
 			if (store[start + i + 1][end] == 0) {
-				dp(store, entity, previous, start + i + 1, end, words);
+				dp(store, entity, previous, start + i + 1, end, words, query);
 			}
 
 			if (store[start][start + i] != EmbeddingHelper.notLinkedScore
