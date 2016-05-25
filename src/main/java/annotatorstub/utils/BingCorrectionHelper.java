@@ -21,15 +21,13 @@ import org.codehaus.jettison.json.JSONObject;
 public class BingCorrectionHelper {
 
 	public static void main(String[] args) {
-		System.out.println(BingCorrectionHelper.correction("vodka sauce recip").getFirst());
+		System.out.println(BingCorrectionHelper.correction("atytorney at law").getFirst());
 	}
 
 	public static Pair<String, HashMap<String, String>> correction(String query) {
 		HashMap<String, String> retMap = new HashMap<>();
 		try {
 			HttpClient httpclient = HttpClients.createDefault();
-			httpclient.getParams().setParameter(ClientPNames.COOKIE_POLICY,
-			        CookiePolicy.BROWSER_COMPATIBILITY);
 			URIBuilder builder = new URIBuilder("https://bingapis.azure-api.net/api/v5/spellcheck");
 			builder.setParameter("mode", "spell");
 			URI uri = builder.build();
