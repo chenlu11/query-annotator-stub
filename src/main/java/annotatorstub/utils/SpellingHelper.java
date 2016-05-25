@@ -16,10 +16,10 @@ public class SpellingHelper {
 	public static final boolean isUseSuggestion = false;
 
 	public static void main(String[] args) {
-//		String s = "kathy alfred;atytorney at law";
-//		System.out.println(new SpellingHelper().getSuggestion(s));
-		String[] words = "as sad sa erw".split(" ");
-
+		String s = "kathy alfred;atytorney at law";
+		System.out.println(new SpellingHelper().getSuggestion(s));
+		s = "kshatria cast of south of india";
+		System.out.println(new SpellingHelper().getSuggestion(s));	
 	}
 
 	public static Pair<String, HashMap<String, String>> getSuggestion(String query) {

@@ -66,12 +66,12 @@ public class WATRelatednessComputer implements Serializable {
 
 	private double queryJsonRel(int wid1, int wid2, String urlTemplate) {
 		String url = String.format(urlTemplate, wid1, wid2);
-		LOG.info(url);
+//		LOG.info(url);
 		JSONObject obj = Utils.httpQueryJson(url);
 		try {
 			increaseFlushCounter();
 			double rel = obj.getDouble("value");
-			LOG.debug(" -> " + rel);
+//			LOG.debug(" -> " + rel);
 			return rel;
 		} catch (Exception e) {
 			throw new RuntimeException(e);

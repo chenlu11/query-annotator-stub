@@ -1,9 +1,10 @@
 package annotatorstub.annotator;
 
+import java.awt.print.Printable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Set;
 
 import annotatorstub.utils.PBoHModelHelper;
 import annotatorstub.utils.Utils;
@@ -23,7 +24,7 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 	private static float threshold = -1f;
 	
 	public static void main(String[] args) throws IOException {
-		new PBoHModelAnnotator().solveDP("luxury apartments san francisco area");
+		new PBoHModelAnnotator().solveDP("lying beach girl");
 	}
 
 	public HashSet<ScoredAnnotation> PBoHModel(String query) throws IOException {
@@ -33,13 +34,11 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 		return result;
 	}
 
-	/*
-	 * solve dp: basecase, i == j, compute all the diagonal elements.
-	 */
 	public HashSet<ScoredAnnotation> solveDP(String query) throws IOException {
 		String[] words = query.toLowerCase().replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
 		int l = words.length;
-		double[][] store = new double[l][l];
+		double[][] store1 = new double[l][l];
+		double[][] store2 = new double[l][l];
 		int[][] entity = new int[l][l];
 		for (int i = 0; i < l; i++) {
 			for (int j = 0; j < l; j++) {
@@ -48,69 +47,107 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 		}
 		// entity[i][j] = -1 means this mention has not been calculated
 		// entity[i][j] = 0 means this mention has no corresponding entity
-		int[] previous = new int[l];
+		int[][] previous = new int[l][l];
+		ArrayList<ArrayList<Set<Integer>>> entities_set = new ArrayList<ArrayList<Set<Integer>>>();
+		for (int i = 0; i < l; i++) {
+			entities_set.add(new ArrayList<Set<Integer>>());
+			for (int j = 0; j < l; j++)
+				entities_set.get(i).add(new HashSet<Integer>());
+		}		
 		
-		DP(store, entity, previous, 0, l - 1, words);
+		DP(store1, store2, entity, previous, entities_set, 0, l - 1, words);
 				
 		HashSet<ScoredAnnotation> result = new HashSet<>();
 		WikipediaApiInterface api = WikipediaApiInterface.api();
-		System.out.println();
-
-		int word_end = l - 1;
-		while (word_end >= 0) {
-			int word_start = previous[word_end];
-			int cur_entity = entity[word_start][word_end];
-			if (cur_entity == 0) {
-				word_end = word_start - 1;
-				continue;
-			}
-			int char_start = query.indexOf(words[word_start]);
-			int char_end = query.indexOf(words[word_end]) + words[word_end].length();						
-			float score = (float) store[word_start][word_end];
-			String cur_mention = constructSegmentation(words, word_start, word_end);
-			System.out.println("find mention: " + cur_mention + "\twikipediaArticle:"
-						+ api.getTitlebyId(cur_entity) + "(" + cur_entity
-						+ ")\tscore: " + score);
-			result.add(new ScoredAnnotation(char_start, char_end - char_start, cur_entity, score));
-
-			word_end = word_start - 1;
+		for (int i : entities_set.get(0).get(l - 1)) {
+			System.out.print(i + " ");
 		}
+		System.out.println();		
+		PrintResult(query, words, store1, entity, previous, api, 0, l - 1, result);
 		return result;
 	}
 	
-	public void DP(double[][] store, int[][] entity, int[] previous, int start, int end, String[] words) {
+	private void PrintResult(String query, String[] words, double[][] store1, int[][] entity, int[][] previous, WikipediaApiInterface api, int i, int j, HashSet<ScoredAnnotation> result) throws IOException {
+		int k = previous[i][j];
+		if (k == i) {
+			int cur_entity = entity[i][j];
+			if (cur_entity == 0)
+				return;
+			int char_start = query.indexOf(words[i]);
+			int char_end = query.indexOf(words[j]) + words[j].length();						
+			float score = (float) store1[i][j];
+			String cur_mention = constructSegmentation(words, i, j);
+			System.out.println("find mention: " + cur_mention + "\twikipediaArticle:"
+						+ api.getTitlebyId(cur_entity) + "(" + cur_entity
+						+ ")\tscore: " + score);
+			result.add(new ScoredAnnotation(char_start, char_end - char_start, cur_entity, score));			
+		}
+		else {
+			PrintResult(query, words, store1, entity, previous, api, i, k - 1, result);
+			PrintResult(query, words, store1, entity, previous, api, k, j, result);
+		}
+	}
+
+	public void DP(double[][] store1, double[][] store2, int[][] entity, int[][] previous, ArrayList<ArrayList<Set<Integer>>> entities_set, int start, int end, String[] words) {
 		if (entity[start][end] != -1)
 			return;
 		
 		String mention = constructSegmentation(words, start, end);
 		Pair<Integer, Double> pair = PBoHModelHelper.getMaxScoreAndEntity(mention, words);
 		int max_entity = pair.first;
-		double max_score = pair.second * (double)(end - start + 1);
-		int prev = start;
+		double max_score = pair.second;
+		if (max_entity != 0)
+			entities_set.get(start).get(end).add(max_entity);
 		
 		if (start == end) {
 			System.out.println(mention + ", entity: " + max_entity + ", score: " + max_score + ", previous:" + start );	
-			store[start][end] = max_score;
+			store1[start][end] = max_score;
 			entity[start][end] = max_entity;
-			if (start == 0)
-				previous[end] = prev;
+			previous[start][end] = start;
 			return;
 		}
 		
-		for (int seg = start; seg < end; seg++) {
-			DP(store, entity, previous, start, seg, words);
-			DP(store, entity, previous, seg + 1, end, words);
-			double cur_score = store[start][seg] + store[seg + 1][end];
-			if (cur_score >= max_score) {
-				max_score = cur_score;			
+		double score1 = max_score, score2 = 0;
+		int prev = start;
+		for (int seg = end - 1; seg >= start; seg--) {
+			DP(store1, store2, entity, previous, entities_set, start, seg, words);
+			DP(store1, store2, entity, previous, entities_set, seg + 1, end, words);
+			double cur_score1, cur_score2, cur_score;
+			if(store1[start][seg] != Double.NEGATIVE_INFINITY && store1[seg + 1][end] != Double.NEGATIVE_INFINITY) {
+				cur_score1 = store1[start][seg] + store1[seg + 1][end];
+				Set<Integer> entities_left = new HashSet<>(entities_set.get(start).get(seg));
+				Set<Integer> entities_right = new HashSet<>(entities_set.get(seg + 1).get(end));
+				int n1 = entities_left.size(), n2 = entities_right.size();
+				cur_score2 = 2 * (store2[start][seg] * (n1 - 1) + store2[seg + 1][end] * (n2 - 1) 
+						+ PBoHModelHelper.getCombinedSumOfLogRelatedness(entities_left, entities_right)) / (n1 + n2 - 1);
+			}
+			else if (store1[start][seg] != Double.NEGATIVE_INFINITY) {
+				cur_score1 = store1[start][seg];
+				cur_score2 = store2[start][seg];
+			}
+			else if (store1[seg + 1][end] != Double.NEGATIVE_INFINITY) {
+				cur_score1 = store1[seg + 1][end];
+				cur_score2 = store2[seg + 1][end];
+			}
+			else
+				continue;
+			cur_score = cur_score1 + cur_score2;
+			if (max_score == Double.NEGATIVE_INFINITY || cur_score > max_score) { 
+				max_score = cur_score;
+				score1 = cur_score1;
+				score2 = cur_score2;
 				prev = seg + 1;
+				entities_set.get(start).get(end).clear();
+				entities_set.get(start).get(end).addAll(entities_set.get(start).get(seg));
+				entities_set.get(start).get(end).addAll(entities_set.get(seg + 1).get(end));
 			}				
 		}		
-		store[start][end] = max_score;
+		store1[start][end] = score1;
+		store2[start][end] = score2;
 		entity[start][end] = max_entity;
-		if (start == 0)
-			previous[end] = prev;
-		System.out.println(mention + ", entity: " + max_entity + ", score: " + max_score + ", previous:" + previous[end] );
+		previous[start][end] = prev;
+		System.out.println(mention + ", entity: " + max_entity + ", score: " + max_score 
+				+ ", score1: " + score1 + ", score2: " + score2 + ", previous:" + previous[end] );
 	}
 	
 	private String constructSegmentation(String[] queryTerms, int start, int end) {
@@ -134,7 +171,7 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 
 	@Override
 	public String getName() {
-		return "fast entity linker annotator";
+		return "PBoH Model annotator";
 	}
 
 	@Override
