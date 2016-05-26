@@ -8,9 +8,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
+import org.apache.commons.math3.util.Pair;
 
-import it.unipi.di.acube.batframework.utils.Pair;
+import it.unimi.dsi.fastutil.doubles.Double2DoubleLinkedOpenHashMap;
+
 
 public class PBoHModelHelper {
 	final static int dim = 300;
@@ -25,14 +26,17 @@ public class PBoHModelHelper {
 		
 		double max_score = Double.NEGATIVE_INFINITY;
 		int max_entity = -1;
-		int l = (entities.length > 8) ? 8 : entities.length;
+		int l = (entities.length > 5) ? 5 : entities.length;
 		for (int i = 0; i < l; i++) {
 			int entity_id = entities[i];
 			double log_commonness = Math.log(WATRelatednessComputer.getCommonness(mention, entity_id));
 //			double log_prob_query_given_entity = getLogProbabilityOfQueryGivenEntity(words, entity_id);
-//			double score = log_commonness + log_prob_query_given_entity;
+//			if (log_prob_query_given_entity == 0)
+//				continue;
 			double score = log_commonness;
-//			System.out.println("Score1: " + mention + "\t" + log_commonness + "\t" + log_prob_query_given_entity + "\t" + score);
+//			double score = log_prob_query_given_entity;
+//			double score = log_commonness + log_prob_query_given_entity;
+//			System.out.println("Score1: " + mention + "\t" + entity_id + "\t" + log_commonness + "\t" + log_prob_query_given_entity + "\t" + score);
 			if (max_score == Double.NEGATIVE_INFINITY || score > max_score) {
 				max_score = score;
 				max_entity = entities[i];

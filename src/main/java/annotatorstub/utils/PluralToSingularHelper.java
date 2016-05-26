@@ -17,6 +17,7 @@ import edu.stanford.nlp.util.CoreMap;
 public class PluralToSingularHelper {
 	public static StanfordCoreNLP pipeline = null;
 	public static void main(String[] args) {
+		System.out.println(PluralToSingularHelper.getSingular("kathy alfred attorney at law", new HashMap<String, String>()).getFirst());
 	}
 	
 	public static Pair<String, HashMap<String, String>> getSingular(String query, HashMap<String, String> src) {

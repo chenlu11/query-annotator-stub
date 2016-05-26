@@ -10,7 +10,6 @@ import org.apache.commons.math3.util.Pair;
 
 import annotatorstub.utils.BingCorrectionHelper;
 import annotatorstub.utils.PBoHModelHelper;
-import annotatorstub.utils.PluralToSingularHelper;
 import annotatorstub.utils.Utils;
 import it.unipi.di.acube.batframework.data.Annotation;
 import it.unipi.di.acube.batframework.data.Mention;
@@ -22,24 +21,33 @@ import it.unipi.di.acube.batframework.utils.AnnotationException;
 import it.unipi.di.acube.batframework.utils.ProblemReduction;
 import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 
-public class PBoHModelAnnotator implements Sa2WSystem {
+public class PBoHModelAnnotatorWithCorrection implements Sa2WSystem {
 	private static long lastTime = -1;
 	private static float threshold = -1f;
 	
-	public static void main(String[] args) throws IOException {
-		new PBoHModelAnnotator().solveDP("andrew alston fulham news");
-//		new PBoHModelAnnotator().solveDP("pine mountain state park lodge");
+	public static void main(String[] args) throws IOException, InterruptedException {
+//		new PBoHModelAnnotator().solveDP("lynn cook longview ron shamburger");
+		new PBoHModelAnnotatorWithCorrection().solveDP("andrew alston fulham news");
 	}
 
-	public HashSet<ScoredAnnotation> PBoHModel(String query) throws IOException {
+	public HashSet<ScoredAnnotation> PBoHModel(String query) throws IOException, InterruptedException {
 		lastTime = System.currentTimeMillis();
 		HashSet<ScoredAnnotation> result = solveDP(query);
 		lastTime = System.currentTimeMillis() - lastTime;
 		return result;
 	}
 
-	public HashSet<ScoredAnnotation> solveDP(String query) throws IOException {
-		String[] words = query.toLowerCase().replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");		
+	public HashSet<ScoredAnnotation> solveDP(String query) throws IOException, InterruptedException {
+//		String[] words = query.toLowerCase().replaceAll("[^A-Za-z0-9 ]", " ").split("\\s+");
+		String query_org = query;
+		Pair<String, HashMap<String, String>> pair = BingCorrectionHelper.correction(query);
+//		pair = PluralToSingularHelper.getSingular(pair.getFirst(), pair.getSecond());
+		query = pair.getFirst();
+		System.out.println("query after spelling correction : " + query);
+		Thread.sleep(20000);
+		String[] words = query.toLowerCase().split("\\W+");
+		HashMap<String, String> word_map = pair.getSecond();
+		
 		int l = words.length;
 		double[][] store1 = new double[l][l];
 		double[][] store2 = new double[l][l];
@@ -67,30 +75,29 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 			System.out.print(i + " ");
 		}
 		System.out.println();		
-		PrintResult(query, words, store1, entity, previous, api, 0, l - 1, result);
-		api.flush();
+		PrintResult(query_org.toLowerCase(), words, store1, entity, previous, api, word_map, 0, l - 1, result);
 		return result;
 	}
 	
-	private void PrintResult(String query, String[] words, double[][] store1, int[][] entity, int[][] previous, WikipediaApiInterface api, int i, int j, HashSet<ScoredAnnotation> result) throws IOException {
+	private void PrintResult(String query, String[] words, double[][] store1, int[][] entity, int[][] previous, WikipediaApiInterface api, HashMap<String, String> word_map, int i, int j, HashSet<ScoredAnnotation> result) throws IOException {
 		int k = previous[i][j];
 		if (k == i) {
 			int cur_entity = entity[i][j];
 			if (cur_entity == 0)
 				return;
-			int char_start = query.toLowerCase().indexOf(words[i]);
-			int char_end = query.toLowerCase().indexOf(words[j]) + words[j].length() - 1;
+			int char_start = (word_map.containsKey(words[i])) ? query.indexOf(word_map.get(words[i])) : query.indexOf(words[i]);
+			int char_end = (word_map.containsKey(words[j])) ? (query.indexOf(word_map.get(words[j])) + word_map.get(words[j]).length()) : (query.indexOf(words[j]) + words[j].length());
 			
 			float score = (float) store1[i][j];
 			String cur_mention = constructSegmentation(words, i, j);
 			System.out.println("find mention: " + cur_mention + "\twikipediaArticle:"
 						+ api.getTitlebyId(cur_entity) + "(" + cur_entity
-						+ ")\tscore: " + score + "\tchar: " + char_start + "-" + char_end);
-			result.add(new ScoredAnnotation(char_start, char_end - char_start + 1, cur_entity, score));			
+						+ ")\tscore: " + score);
+			result.add(new ScoredAnnotation(char_start, char_end - char_start, cur_entity, score));			
 		}
 		else {
-			PrintResult(query, words, store1, entity, previous, api, i, k - 1, result);
-			PrintResult(query, words, store1, entity, previous, api, k, j, result);
+			PrintResult(query, words, store1, entity, previous, api, word_map, i, k - 1, result);
+			PrintResult(query, words, store1, entity, previous, api, word_map, k, j, result);
 		}
 	}
 
@@ -106,7 +113,7 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 			entities_set.get(start).get(end).add(max_entity);
 		
 		if (start == end) {
-			System.out.println(mention + ", entity: " + max_entity + ", score: " + max_score + ", previous:" + start);	
+			System.out.println(mention + ", entity: " + max_entity + ", score: " + max_score + ", previous:" + start );	
 			store1[start][end] = max_score;
 			entity[start][end] = max_entity;
 			previous[start][end] = start;

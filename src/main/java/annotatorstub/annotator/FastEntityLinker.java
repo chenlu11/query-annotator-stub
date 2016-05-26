@@ -12,7 +12,6 @@ import org.apache.commons.math3.util.Pair;
 import annotatorstub.utils.BingCorrectionHelper;
 import annotatorstub.utils.EmbeddingHelper;
 import annotatorstub.utils.PluralToSingularHelper;
-import annotatorstub.utils.SpellingHelper;
 import annotatorstub.utils.Utils;
 import it.unipi.di.acube.batframework.data.Annotation;
 import it.unipi.di.acube.batframework.data.Mention;
@@ -29,7 +28,7 @@ public class FastEntityLinker implements Sa2WSystem {
 	private static float threshold = -1f;
 
 	public static void main(String[] args) throws IOException {
-		new FastEntityLinker().solveDP("vodka sauce recip");
+		new FastEntityLinker().solveDP("kathy alfred;atytorney at law");
 	}
 
 	public HashSet<ScoredAnnotation> fastEntityLinkerModel(String query) throws IOException {

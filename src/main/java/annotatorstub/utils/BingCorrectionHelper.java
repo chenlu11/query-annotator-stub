@@ -21,7 +21,7 @@ import org.codehaus.jettison.json.JSONObject;
 public class BingCorrectionHelper {
 
 	public static void main(String[] args) {
-		System.out.println(BingCorrectionHelper.correction("atytorney at law").getFirst());
+		System.out.println(BingCorrectionHelper.correction("kathy alfred;atytorney at law").getFirst());
 	}
 
 	public static Pair<String, HashMap<String, String>> correction(String query) {
