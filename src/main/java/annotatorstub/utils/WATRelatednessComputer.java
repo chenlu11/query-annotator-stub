@@ -3,12 +3,15 @@ package annotatorstub.utils;
 import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URLEncoder;
+import java.util.HashSet;
+import java.util.List;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import it.unipi.di.acube.batframework.data.Annotation;
 import it.unipi.di.acube.batframework.utils.Pair;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -16,7 +19,8 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 public class WATRelatednessComputer implements Serializable {
 	private final static Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private static final long serialVersionUID = 1L;
-	private static WATRelatednessComputer instance = new WATRelatednessComputer();
+	private static String resultsCacheFilename = "wikisense.cache";
+	private static WATRelatednessComputer instance = deserializeResult();
 	private Object2DoubleOpenHashMap<Pair<Integer,Integer>> cacheJaccard = new Object2DoubleOpenHashMap<>();
 	private Object2DoubleOpenHashMap<Pair<Integer,Integer>> cacheMW = new Object2DoubleOpenHashMap<>();
 	private Object2DoubleOpenHashMap<Pair<String,Integer>> cacheComm = new Object2DoubleOpenHashMap<>();
@@ -27,7 +31,22 @@ public class WATRelatednessComputer implements Serializable {
 	private static final String URL_TEMPLATE_JACCARD = "http://wikisense.mkapp.it/rel/id?src=%d&dst=%d&relatedness=jaccard";
 	private static final String URL_TEMPLATE_MW = "http://wikisense.mkapp.it/rel/id?src=%d&dst=%d&relatedness=mw";
 	private static final String URL_TEMPLATE_SPOT = "http://wikisense.mkapp.it/tag/spot?text=%s";
-	private static String resultsCacheFilename = null;
+	
+	public static WATRelatednessComputer deserializeResult() {
+		try {
+			File cache = new File(resultsCacheFilename);
+			if (cache.exists()) {
+				ObjectInputStream oos = new ObjectInputStream(new FileInputStream(cache));
+				Object o = oos.readObject();
+				oos.close();
+				return (WATRelatednessComputer) o;
+			}
+			else
+				return new WATRelatednessComputer();
+		} catch (Exception e) {
+			return new WATRelatednessComputer();
+		}		
+	}
 	
 	public synchronized void increaseFlushCounter()
 			throws FileNotFoundException, IOException {
@@ -125,7 +144,7 @@ public class WATRelatednessComputer implements Serializable {
 		instance.cacheAnchors.put(anchor, new int[]{});
 		try {
 			String url = String.format(URL_TEMPLATE_SPOT, URLEncoder.encode(anchor, "utf-8"));
-//			LOG.debug("Querying {}", url);
+			LOG.debug("Querying {}", url);
 			JSONObject obj = Utils.httpQueryJson(url);
 			instance.increaseFlushCounter();
 			JSONArray spots = obj.getJSONArray("spots");
