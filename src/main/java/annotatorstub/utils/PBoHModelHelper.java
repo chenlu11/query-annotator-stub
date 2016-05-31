@@ -20,6 +20,7 @@ public class PBoHModelHelper {
 	
 	public static Pair<Integer, Double> getMaxScoreAndEntity(String mention, String[] words) {
 		int entities[] = WATRelatednessComputer.getLinks(mention);
+
 		if (entities.length == 0) {
 			return new Pair<Integer, Double>(0, Double.NEGATIVE_INFINITY);  // entity_id = 0 means this mention has no corresponding entity
 		}
@@ -35,7 +36,7 @@ public class PBoHModelHelper {
 //				continue;
 			double score = log_commonness;
 //			double score = log_prob_query_given_entity;
-//			double score = log_commonness + log_prob_query_given_entity;
+//			double score = log_commonness + 0.075 * log_prob_query_given_entity;
 //			System.out.println("Score1: " + mention + "\t" + entity_id + "\t" + log_commonness + "\t" + log_prob_query_given_entity + "\t" + score);
 			if (max_score == Double.NEGATIVE_INFINITY || score > max_score) {
 				max_score = score;

@@ -12,6 +12,7 @@ import annotatorstub.utils.BingCorrectionHelper;
 import annotatorstub.utils.PBoHModelHelper;
 import annotatorstub.utils.PluralToSingularHelper;
 import annotatorstub.utils.Utils;
+import annotatorstub.utils.WATRelatednessComputer;
 import it.unipi.di.acube.batframework.data.Annotation;
 import it.unipi.di.acube.batframework.data.Mention;
 import it.unipi.di.acube.batframework.data.ScoredAnnotation;
@@ -27,8 +28,9 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 	private static float threshold = -1f;
 	
 	public static void main(String[] args) throws IOException {
-		new PBoHModelAnnotator().solveDP("andrew alston fulham news");
+		new PBoHModelAnnotator().solveDP("president 1974");
 //		new PBoHModelAnnotator().solveDP("pine mountain state park lodge");
+		WATRelatednessComputer.flush();
 	}
 
 	public HashSet<ScoredAnnotation> PBoHModel(String query) throws IOException {
@@ -60,7 +62,7 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 		}		
 		
 		DP(store1, store2, entity, previous, entities_set, 0, l - 1, words);
-				
+
 		HashSet<ScoredAnnotation> result = new HashSet<>();
 		WikipediaApiInterface api = WikipediaApiInterface.api();
 		for (int i : entities_set.get(0).get(l - 1)) {
@@ -80,11 +82,12 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 				return;
 			int char_start = query.toLowerCase().indexOf(words[i]);
 			int char_end = query.toLowerCase().indexOf(words[j]) + words[j].length() - 1;
-			
+			if (char_end < char_start)
+				return;
 			float score = (float) store1[i][j];
 			String cur_mention = constructSegmentation(words, i, j);
 			System.out.println("find mention: " + cur_mention + "\twikipediaArticle:"
-						+ api.getTitlebyId(cur_entity) + "(" + cur_entity
+						+ api.getTitlebyId(cur_entity) + " (" + cur_entity
 						+ ")\tscore: " + score + "\tchar: " + char_start + "-" + char_end);
 			result.add(new ScoredAnnotation(char_start, char_end - char_start + 1, cur_entity, score));			
 		}
@@ -97,7 +100,7 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 	public void DP(double[][] store1, double[][] store2, int[][] entity, int[][] previous, ArrayList<ArrayList<Set<Integer>>> entities_set, int start, int end, String[] words) {
 		if (entity[start][end] != -1)
 			return;
-		
+
 		String mention = constructSegmentation(words, start, end);
 		Pair<Integer, Double> pair = PBoHModelHelper.getMaxScoreAndEntity(mention, words);
 		int max_entity = pair.getFirst();
@@ -112,7 +115,7 @@ public class PBoHModelAnnotator implements Sa2WSystem {
 			previous[start][end] = start;
 			return;
 		}
-		
+
 		double score1 = max_score, score2 = 0;
 		int prev = start;
 		for (int seg = end - 1; seg >= start; seg--) {

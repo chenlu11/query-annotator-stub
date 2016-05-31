@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import annotatorstub.annotator.PBoHModelAnnotator;
+import annotatorstub.annotator.PBoHModelAnnotatorWithCorrection;
 import annotatorstub.utils.Utils;
 import it.unipi.di.acube.batframework.cache.BenchmarkCache;
 import it.unipi.di.acube.batframework.data.Annotation;
@@ -28,8 +29,8 @@ public class SerializeResult {
 		A2WDataset ds = new YahooWebscopeL24Dataset(dsPath);
 //		FakeAnnotator ann = new FakeAnnotator();
 //		newAnnotator ann = new newAnnotator();
-//		PBoHModelAnnotatorWithCorrection ann = new PBoHModelAnnotatorWithCorrection();
-		PBoHModelAnnotator ann = new PBoHModelAnnotator();		
-		Utils.serializeResult(ann, ds, new File("annotation-" + groupName + ".bin"));
+		PBoHModelAnnotatorWithCorrection ann = new PBoHModelAnnotatorWithCorrection();
+//		PBoHModelAnnotatorWith ann = new PBoHModelAnnotator();		
+		Utils.serializeResult(ann, ds, new File("annotation-" + groupName + "-simple" + ".bin"));
 	}
 }

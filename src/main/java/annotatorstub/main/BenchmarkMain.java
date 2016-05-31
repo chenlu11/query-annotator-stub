@@ -7,7 +7,9 @@ import java.util.HashSet;
 import java.util.List;
 
 import annotatorstub.annotator.*;
+import annotatorstub.utils.BingCorrectionHelper;
 import annotatorstub.utils.Utils;
+import annotatorstub.utils.WATRelatednessComputer;
 import it.unipi.di.acube.batframework.cache.BenchmarkCache;
 import it.unipi.di.acube.batframework.data.Annotation;
 import it.unipi.di.acube.batframework.data.Tag;
@@ -22,16 +24,21 @@ import it.unipi.di.acube.batframework.utils.WikipediaApiInterface;
 
 public class BenchmarkMain {
 	public static void main(String[] args) throws Exception {
-//		System.setOut(new PrintStream(new FileOutputStream("result_FastEntityLinker2_commonness_100.txt")));
+//		String resultsFilename = "result_PBoHModel_twofeatures_all_withcorr.txt";
+//		new File(resultsFilename).createNewFile();
+//		System.setOut(new PrintStream(new FileOutputStream(resultsFilename)));
 		
 		WikipediaApiInterface wikiApi = WikipediaApiInterface.api();
 		A2WDataset ds = DatasetBuilder.getGerdaqDevel();
 //		FakeAnnotator ann = new FakeAnnotator();
-		PBoHModelAnnotator ann = new PBoHModelAnnotator();
+		PBoHModelAnnotatorWithCorrection ann = new PBoHModelAnnotatorWithCorrection();
 //		newAnnotator ann = new newAnnotator();
+//		PBoHModelAnnotator ann = new PBoHModelAnnotator();
 
 		List<HashSet<Tag>> resTag = BenchmarkCache.doC2WTags(ann, ds);
 		List<HashSet<Annotation>> resAnn = BenchmarkCache.doA2WAnnotations(ann, ds);
+		WATRelatednessComputer.flush();
+//		BingCorrectionHelper.flush();
 		DumpData.dumpCompareList(ds.getTextInstanceList(), ds.getA2WGoldStandardList(), resAnn, wikiApi);
 
 		Metrics<Tag> metricsTag = new Metrics<>();
@@ -42,7 +49,7 @@ public class BenchmarkMain {
 		MetricsResultSet rsA2W = metricsAnn.getResult(resAnn, ds.getA2WGoldStandardList(), new StrongAnnotationMatch(wikiApi));
 		Utils.printMetricsResultSet("A2W-SAM", rsA2W, ann.getName());
 		
-		Utils.serializeResult(ann, ds, new File("annotations.bin"));
+//		Utils.serializeResult(ann, ds, new File("annotations.bin"));
 		wikiApi.flush();
 	}
 
